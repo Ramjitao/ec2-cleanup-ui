@@ -5,12 +5,8 @@ on:
     inputs:
       region:
         description: "AWS Region"
-        required: false
-        default: "eu-west-1"
-      auto_confirm:
-        description: "Auto-confirm deletion"
         required: true
-        default: "false"
+        default: "eu-west-1"
       access_key_id:
         description: "AWS Access Key ID"
         required: true
@@ -20,12 +16,16 @@ on:
       session_token:
         description: "AWS Session Token"
         required: false
+      confirm_delete:
+        description: "Confirm Deletion"
+        required: true
+        default: "false"
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -42,6 +42,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ github.event.inputs.secret_access_key }}
           AWS_SESSION_TOKEN: ${{ github.event.inputs.session_token }}
         run: |
-          python ec2_volume_cleanup.py \
+          python api/ec2_volume_cleanup.py \
             --region "${{ github.event.inputs.region }}" \
-            ${{ github.event.inputs.auto_confirm == 'true' && '--yes' || '' }}
+            ${{ github.event.inputs.confirm_delete == 'true' && '--yes' || '' }}
