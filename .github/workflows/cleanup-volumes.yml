@@ -1,0 +1,37 @@
+name: EC2 Volume Cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "AWS Region"
+        required: false
+        default: "eu-west-1"
+      auto_confirm:
+        description: "Auto-confirm deletion"
+        required: false
+        default: "true"
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Run cleanup script
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          python ec2_volume_cleanup.py \
+            --region "${{ github.event.inputs.region }}" \
+            ${{ github.event.inputs.auto_confirm == 'true' && '--yes' || '' }}
