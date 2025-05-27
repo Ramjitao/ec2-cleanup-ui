@@ -1,7 +1,9 @@
 import boto3
 import time
 import argparse
+import sys
 from collections import defaultdict
+
 
 def get_all_available_volumes(region='eu-west-1'):
     ec2 = boto3.client('ec2', region_name=region)
@@ -19,6 +21,7 @@ def get_all_available_volumes(region='eu-west-1'):
                 volumes_by_snapshot[snapshot_id].append(volume)
 
     return volumes_by_snapshot
+
 
 def is_snapshot_used(snapshot_id, region='eu-west-1'):
     ec2 = boto3.client('ec2', region_name=region)
@@ -58,6 +61,7 @@ def is_snapshot_used(snapshot_id, region='eu-west-1'):
 
     return False
 
+
 def delete_volumes(volumes, region='eu-west-1'):
     ec2 = boto3.client('ec2', region_name=region)
     for volume in volumes:
@@ -81,35 +85,37 @@ def delete_volumes(volumes, region='eu-west-1'):
                     print(f"❌ Error deleting {volume_id}: {e}")
                     break
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--region', default='eu-west-1')
-    parser.add_argument('--yes', action='store_true', help="Auto-confirm deletion")
+
+def main():
+    parser = argparse.ArgumentParser(description="Clean up detached EBS volumes backed by snapshots.")
+    parser.add_argument('--region', default='eu-west-1', help='AWS Region')
+    parser.add_argument('--yes', action='store_true', help='Auto confirm deletion (non-interactive mode)')
+
     args = parser.parse_args()
 
-    region = args.region
-    volumes_by_snapshot = get_all_available_volumes(region)
+    volumes_by_snapshot = get_all_available_volumes(args.region)
 
     if not volumes_by_snapshot:
         print("✅ No available volumes found to delete.")
-        exit(0)
+        sys.exit(0)
 
     print(f"\n🔍 Found {len(volumes_by_snapshot)} snapshot groups with available volumes.\n")
 
     for snapshot_id, volumes in volumes_by_snapshot.items():
         print(f"\nSnapshot: {snapshot_id} → {len(volumes)} available volumes")
 
-        in_use = is_snapshot_used(snapshot_id, region)
+        in_use = is_snapshot_used(snapshot_id, args.region)
         if in_use:
-            print(f"⚠️ Snapshot {snapshot_id} is actively used. Deleting volumes anyway.")
+            print(f"⚠️ Snapshot {snapshot_id} is actively used. Deleting volumes anyway (they're detached).")
         else:
             print(f"✅ Snapshot {snapshot_id} is not actively used.")
 
-        if args.yes:
-            delete_volumes(volumes, region)
-        else:
-            confirm = input(f"❓ Delete these {len(volumes)} volumes? [y/N]: ").strip().lower()
-            if confirm == 'y':
-                delete_volumes(volumes, region)
-            else:
-                print("⏭️ Skipping...")
+        if not args.yes:
+            print(f"❌ Interactive confirmation required, but this is a non-interactive environment. Use '--yes' to proceed.")
+            sys.exit(1)
+
+        delete_volumes(volumes, args.region)
+
+
+if __name__ == '__main__':
+    main()
