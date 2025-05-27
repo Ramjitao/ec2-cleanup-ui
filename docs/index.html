@@ -1,40 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>EC2 Volume Cleanup</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>EC2 Volume Cleanup Trigger</title>
 </head>
 <body>
-  <div class="container">
-    <h1>🧹 EC2 Volume Cleanup</h1>
+  <h2>Trigger EC2 Volume Cleanup Workflow</h2>
 
-    <label>AWS Access Key ID:</label>
-    <input type="text" id="accessKeyId" placeholder="AKIA..." required>
+  <form id="trigger-form">
+    <label>GitHub Owner:<br><input type="text" id="gh-owner" required></label><br><br>
+    <label>GitHub Repository:<br><input type="text" id="gh-repo" required></label><br><br>
+    <label>Workflow Filename (e.g., `cleanup.yml`):<br><input type="text" id="gh-workflow" required></label><br><br>
+    <label>Branch (e.g., `main`):<br><input type="text" id="gh-branch" value="main" required></label><br><br>
 
-    <label>AWS Secret Access Key:</label>
-    <input type="password" id="secretAccessKey" placeholder="********" required>
+    <label>Personal Access Token:<br><input type="password" id="pat-token" required></label><br><br>
 
-    <label>AWS Session Token (Optional):</label>
-    <input type="text" id="sessionToken" placeholder="...">
+    <label>AWS Access Key ID:<br><input type="text" id="access-key" required></label><br><br>
+    <label>AWS Secret Access Key:<br><input type="password" id="secret-key" required></label><br><br>
+    <label>AWS Session Token (optional):<br><input type="text" id="session-token"></label><br><br>
+    <label>Region:<br><input type="text" id="region" value="eu-west-1" required></label><br><br>
+    <label>Auto Confirm Delete:
+      <select id="auto-confirm">
+        <option value="false" selected>No</option>
+        <option value="true">Yes</option>
+      </select>
+    </label><br><br>
 
-    <label>AWS Region:</label>
-    <input type="text" id="region" value="eu-west-1">
+    <button type="submit">🚀 Trigger Cleanup</button>
+  </form>
 
-    <label>Auto-confirm deletion?</label>
-    <select id="autoConfirm">
-      <option value="false">No</option>
-      <option value="true">Yes</option>
-    </select>
-
-    <label>GitHub PAT (Personal Access Token):</label>
-    <input type="password" id="githubToken" placeholder="ghp_..." required>
-
-    <button id="trigger">Trigger Cleanup</button>
-
-    <div id="status"></div>
-  </div>
+  <div id="result" style="margin-top: 20px; color: green;"></div>
 
   <script src="app.js"></script>
 </body>
