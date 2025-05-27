@@ -1,73 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>EC2 Volume Cleanup</title>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EC2 Volume Cleanup Trigger</title>
   <style>
-    body { font-family: sans-serif; margin: 2rem; }
-    input, select, button { padding: 0.5rem; margin: 0.5rem 0; width: 100%; }
-    pre { background: #f4f4f4; padding: 1rem; border-radius: 5px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      background: #f9f9f9;
+    }
+    form {
+      background: white;
+      padding: 2em;
+      border-radius: 8px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5em;
+      margin: 0.5em 0 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 0.7em 1.5em;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .message {
+      margin-top: 1em;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h1>🧹 EC2 Volume Cleanup Trigger</h1>
 
-  <label>Region (default: eu-west-1)</label>
-  <input type="text" id="region" placeholder="eu-west-1" />
+<h2>Trigger EC2 Volume Cleanup</h2>
 
-  <label>Auto-confirm delete?</label>
-  <select id="auto_confirm">
-    <option value="true" selected>Yes</option>
+<form id="cleanupForm">
+  <label>AWS Region:</label>
+  <input type="text" name="region" value="eu-west-1" required />
+
+  <label>Auto Confirm Deletion:</label>
+  <select name="auto_confirm" required>
     <option value="false">No</option>
+    <option value="true">Yes</option>
   </select>
 
-  <label>Your GitHub PAT (repo scope)</label>
-  <input type="password" id="pat" placeholder="ghp_..." />
+  <label>AWS Access Key ID:</label>
+  <input type="text" name="access_key_id" required />
 
-  <button onclick="runCleanup()">🚀 Trigger Cleanup</button>
+  <label>AWS Secret Access Key:</label>
+  <input type="password" name="secret_access_key" required />
 
-  <h2>Status:</h2>
-  <pre id="result">Waiting...</pre>
+  <label>AWS Session Token (optional):</label>
+  <input type="text" name="session_token" />
 
-  <script>
-    async function runCleanup() {
-      const repoOwner = "YOUR_GITHUB_USERNAME";
-      const repoName = "ec2-cleanup-ui";
-      const workflowFile = "cleanup-volumes.yml";
+  <label>Your GitHub PAT (with repo & workflow scopes):</label>
+  <input type="password" name="github_pat" required />
 
-      const region = document.getElementById('region').value || "eu-west-1";
-      const auto_confirm = document.getElementById('auto_confirm').value;
-      const pat = document.getElementById('pat').value;
+  <label>GitHub Repo (format: owner/repo):</label>
+  <input type="text" name="repo" required />
 
-      const resultBox = document.getElementById('result');
-      resultBox.textContent = "🔄 Sending request...";
+  <label>Workflow File Name (e.g. ec2-cleanup.yml):</label>
+  <input type="text" name="workflow" required />
 
-      try {
-        const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/actions/workflows/${workflowFile}/dispatches`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${pat}`,
-            'Accept': 'application/vnd.github.v3+json'
-          },
-          body: JSON.stringify({
-            ref: "main",
-            inputs: {
-              region: region,
-              auto_confirm: auto_confirm
-            }
-          })
-        });
+  <button type="submit">Run Cleanup</button>
 
-        if (response.status === 204) {
-          resultBox.textContent = "✅ Cleanup triggered successfully!";
-        } else {
-          const error = await response.text();
-          resultBox.textContent = `❌ Failed: ${error}`;
-        }
-      } catch (err) {
-        resultBox.textContent = `❌ Error: ${err.message}`;
+  <div class="message" id="message"></div>
+</form>
+
+<script>
+  document.getElementById("cleanupForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const form = e.target;
+    const messageEl = document.getElementById("message");
+
+    const repo = form.repo.value.trim();
+    const workflow = form.workflow.value.trim();
+    const url = `https://api.github.com/repos/${repo}/actions/workflows/${workflow}/dispatches`;
+
+    const payload = {
+      ref: "main", // or your default branch
+      inputs: {
+        region: form.region.value,
+        auto_confirm: form.auto_confirm.value,
+        access_key_id: form.access_key_id.value,
+        secret_access_key: form.secret_access_key.value,
+        session_token: form.session_token.value
       }
+    };
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${form.github_pat.value}`,
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.status === 204) {
+        messageEl.textContent = "✅ Workflow triggered successfully!";
+        messageEl.style.color = "green";
+      } else {
+        const error = await res.json();
+        messageEl.textContent = `❌ Error: ${JSON.stringify(error)}`;
+        messageEl.style.color = "red";
+      }
+    } catch (err) {
+      messageEl.textContent = `❌ Exception: ${err.message}`;
+      messageEl.style.color = "red";
     }
-  </script>
+  });
+</script>
+
 </body>
 </html>
