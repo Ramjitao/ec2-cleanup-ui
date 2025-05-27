@@ -1,88 +1,22 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>EC2 Volume Cleanup</title>
-  <style>
-    body { font-family: Arial; padding: 2rem; }
-    label, input, button { display: block; margin: 0.5rem 0; }
-    #status { font-weight: bold; margin-top: 1rem; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>EC2 Volume Cleanup</h2>
-  <label>AWS Access Key ID: <input type="text" id="accessKeyId"></label>
-  <label>AWS Secret Access Key: <input type="password" id="secretAccessKey"></label>
-  <label>AWS Session Token (optional): <input type="text" id="sessionToken"></label>
-  <label>AWS Region: <input type="text" id="region" value="eu-west-1"></label>
-  <label>Auto Confirm Delete: <input type="checkbox" id="autoConfirm"></label>
-  <button onclick="triggerWorkflow()">Run Cleanup</button>
-  <div id="status">Status: Not started</div>
+  <h1>EC2 Volume Cleanup Tool</h1>
+  <form id="cleanupForm">
+    <label>AWS Access Key ID: <input type="text" id="accessKey" required></label><br>
+    <label>AWS Secret Access Key: <input type="password" id="secretKey" required></label><br>
+    <label>AWS Session Token (optional): <input type="text" id="sessionToken"></label><br>
+    <label>AWS Region: <input type="text" id="region" value="eu-west-1" required></label><br>
+    <button type="submit">Fetch Resources</button>
+  </form>
 
-  <script>
-    const username = "YOUR_GITHUB_USERNAME";
-    const repo = "YOUR_REPO";
-    const token = "YOUR_PAT_TOKEN"; // Warning: Never expose in production
-
-    async function triggerWorkflow() {
-      const accessKeyId = document.getElementById('accessKeyId').value;
-      const secretAccessKey = document.getElementById('secretAccessKey').value;
-      const sessionToken = document.getElementById('sessionToken').value;
-      const region = document.getElementById('region').value;
-      const autoConfirm = document.getElementById('autoConfirm').checked;
-
-      document.getElementById("status").innerText = "Status: Triggering workflow...";
-
-      const resp = await fetch(`https://api.github.com/repos/${username}/${repo}/actions/workflows/ec2-cleanup.yml/dispatches`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/vnd.github+json"
-        },
-        body: JSON.stringify({
-          ref: "main",
-          inputs: {
-            region,
-            auto_confirm: autoConfirm ? "true" : "false",
-            access_key_id: accessKeyId,
-            secret_access_key: secretAccessKey,
-            session_token: sessionToken
-          }
-        })
-      });
-
-      if (!resp.ok) {
-        const errText = await resp.text();
-        document.getElementById("status").innerText = `Failed to trigger: ${errText}`;
-        return;
-      }
-
-      document.getElementById("status").innerText = "Workflow triggered. Waiting for status...";
-
-      pollWorkflowStatus();
-    }
-
-    async function pollWorkflowStatus() {
-      const interval = setInterval(async () => {
-        const response = await fetch(`https://api.github.com/repos/${username}/${repo}/actions/runs`, {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Accept": "application/vnd.github+json"
-          }
-        });
-
-        const data = await response.json();
-        const latestRun = data.workflow_runs.find(run => run.name === "EC2 Volume Cleanup");
-
-        if (latestRun) {
-          const statusText = `Workflow Status: ${latestRun.status} / Conclusion: ${latestRun.conclusion || '⏳ Pending'}`;
-          document.getElementById("status").innerText = statusText;
-
-          if (latestRun.status === "completed") {
-            clearInterval(interval);
-          }
-        }
-      }, 5000); // poll every 5 seconds
-    }
-  </script>
+  <div id="results"></div>
+  <script src="app.js"></script>
 </body>
 </html>
