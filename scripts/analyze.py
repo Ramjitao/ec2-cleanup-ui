@@ -154,16 +154,53 @@ def main():
     print("Fetching ASG AMI usage...")
     asg_amis = get_asg_ami_usage(asg_client, ec2_client)
 
-    # Save JSON files
+    # Save raw data
     save_to_file(amis, 'amis.json')
     save_to_file(snapshots, 'snapshots.json')
     save_to_file(volumes, 'volumes.json')
     save_to_file(asg_amis, 'asg_ami_usage.json')
 
-    # Generate HTML report
-    generate_html_report(amis, snapshots, volumes, asg_amis)
+    # Create a lookup of snapshot ID → snapshot
+    snapshot_map = {snap['SnapshotId']: snap for snap in snapshots}
 
+    # Create a lookup of volume ID → volume
+    volume_map = {vol['VolumeId']: vol for vol in volumes}
+
+    # Create output table
+    rows = []
+    for ami in amis:
+        ami_id = ami['ImageId']
+        created = ami.get('CreationDate', '-')
+        name = ami.get('Name', '')
+        asg_names = ', '.join(asg_amis.get(ami_id, [])) or '-'
+
+        # Try to find snapshot and volume info based on matching descriptions
+        matched_snapshots = [snap for snap in snapshots if ami_id in snap.get('Description', '')]
+        snapshot_ids = ', '.join([snap['SnapshotId'] for snap in matched_snapshots]) or '-'
+        volume_ids = ', '.join([snap.get('VolumeId', '-') for snap in matched_snapshots]) or '-'
+
+        rows.append({
+            'AMI ID': ami_id,
+            'In Use': 'Yes' if ami_id in asg_amis else 'No',
+            'Snapshot ID': snapshot_ids,
+            'Volume ID(s)': volume_ids,
+            'ASG Name': asg_names,
+            'Created Date': created
+        })
+
+    # Generate HTML report
+    os.makedirs('output', exist_ok=True)
+    with open('output/output.html', 'w') as f:
+        f.write("<html><head><title>EC2 Cleanup Report</title></head><body>")
+        f.write("<h2>AMI Cleanup Report</h2>")
+        f.write("<table border='1'><tr><th>AMI ID</th><th>In Use</th><th>Snapshot ID</th><th>Volume ID(s)</th><th>ASG Name</th><th>Created Date</th></tr>")
+        for row in rows:
+            f.write(f"<tr><td>{row['AMI ID']}</td><td>{row['In Use']}</td><td>{row['Snapshot ID']}</td><td>{row['Volume ID(s)']}</td><td>{row['ASG Name']}</td><td>{row['Created Date']}</td></tr>")
+        f.write("</table></body></html>")
+
+    print("Saved output/output.html")
     print("Analyze complete.")
+
 
 if __name__ == "__main__":
     main()
