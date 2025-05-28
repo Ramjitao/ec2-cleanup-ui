@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EC2 Cleanup UI</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    form label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    #artifact-link {
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
   <h1>EC2 Cleanup UI</h1>
@@ -14,7 +28,7 @@
     <label>Repo Owner: <input type="text" id="owner" required></label>
     <label>Repo Name: <input type="text" id="repo" required></label>
     <label>AWS Region: <input type="text" id="region" value="eu-west-1"></label>
-    <label>AWS Access Key: <input type="text" id="awsKey" required></label>
+    <label>AWS Access Key: <input type="password" id="awsKey" required></label>
     <label>AWS Secret: <input type="password" id="awsSecret" required></label>
     <label>AWS Session Token: <input type="text" id="awsToken"></label>
     <label>
@@ -30,6 +44,7 @@
 
   <div id="status"></div>
   <div id="artifact-link"></div>
+
+  <script src="app.js"></script>
 </body>
-<script src="app.js"></script>
 </html>
