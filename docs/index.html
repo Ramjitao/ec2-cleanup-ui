@@ -1,36 +1,28 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>EC2 Volume Cleanup Trigger</title>
+  <title>EC2 Cleanup UI</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>Trigger EC2 Volume Cleanup Workflow</h2>
+  <h1>🧹 EC2 Cleanup Dashboard</h1>
+  <form id="cleanupForm">
+    <label>GitHub PAT: <input type="password" id="pat" required></label><br>
+    <label>Repo Name (owner/repo): <input type="text" id="repo" required></label><br>
+    <label>Region: <input type="text" id="region" value="eu-west-1" required></label><br>
+    <label>AWS Access Key ID: <input type="text" id="accessKeyId" required></label><br>
+    <label>AWS Secret Access Key: <input type="password" id="secretAccessKey" required></label><br>
+    <label>AWS Session Token (optional): <input type="text" id="sessionToken"></label><br><br>
 
-  <form id="trigger-form">
-    <label>GitHub Owner:<br><input type="text" id="gh-owner" required></label><br><br>
-    <label>GitHub Repository:<br><input type="text" id="gh-repo" required></label><br><br>
-    <label>Workflow Filename (e.g., `cleanup.yml`):<br><input type="text" id="gh-workflow" required></label><br><br>
-    <label>Branch (e.g., `main`):<br><input type="text" id="gh-branch" value="main" required></label><br><br>
+    <label><input type="radio" name="action" value="analyze" checked> Analyze Resources</label><br>
+    <label><input type="radio" name="action" value="dryrun"> Dry-Run Delete</label><br>
+    <label><input type="radio" name="action" value="delete"> Actual Delete</label><br><br>
 
-    <label>Personal Access Token:<br><input type="password" id="pat-token" required></label><br><br>
-
-    <label>AWS Access Key ID:<br><input type="text" id="access-key" required></label><br><br>
-    <label>AWS Secret Access Key:<br><input type="password" id="secret-key" required></label><br><br>
-    <label>AWS Session Token (optional):<br><input type="text" id="session-token"></label><br><br>
-    <label>Region:<br><input type="text" id="region" value="eu-west-1" required></label><br><br>
-    <label>Auto Confirm Delete:
-      <select id="auto-confirm">
-        <option value="false" selected>No</option>
-        <option value="true">Yes</option>
-      </select>
-    </label><br><br>
-
-    <button type="submit">🚀 Trigger Cleanup</button>
+    <button type="submit">🚀 Trigger</button>
   </form>
-
-  <div id="result" style="margin-top: 20px; color: green;"></div>
-
+  <pre id="output"></pre>
   <script src="app.js"></script>
 </body>
 </html>

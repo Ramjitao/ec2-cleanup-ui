@@ -1,14 +1,4 @@
 
-body {
-  font-family: sans-serif;
-  margin: 20px;
-}
-form label {
-  display: block;
-  margin-bottom: 10px;
-}
-#results {
-  margin-top: 20px;
-  padding: 10px;
-  border: 1px solid #ccc;
-}
+body { font-family: Arial; padding: 20px; }
+label { display: block; margin: 8px 0; }
+pre { background: #f0f0f0; padding: 10px; }
