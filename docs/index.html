@@ -1,56 +1,19 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>EC2 Cleanup Trigger</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; }
-    label, input, select { display: block; margin: 0.5rem 0; }
-    button { margin-top: 1rem; }
-    .section { margin-bottom: 2rem; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EC2 Cleanup UI</title>
 </head>
 <body>
-  <h1>🧹 EC2 Cleanup Trigger</h1>
-
-  <div class="section">
-    <label for="pat">🔑 GitHub PAT Token:</label>
-    <input type="password" id="pat" placeholder="ghp_..." required>
-
-    <label for="owner">📁 GitHub Owner:</label>
-    <input type="text" id="owner" placeholder="your-github-username-or-org" required>
-
-    <label for="repo">📦 GitHub Repository:</label>
-    <input type="text" id="repo" placeholder="your-repo-name" required>
-
-    <label for="workflow_file">📝 Workflow File Name:</label>
-    <input type="text" id="workflow_file" placeholder="cleanup.yml" required>
-  </div>
-
-  <div class="section">
-    <label for="region">🌍 AWS Region:</label>
-    <input type="text" id="region" value="eu-west-1">
-
-    <label for="access_key">🗝️ AWS Access Key ID:</label>
-    <input type="text" id="access_key" required>
-
-    <label for="secret_key">🔐 AWS Secret Access Key:</label>
-    <input type="password" id="secret_key" required>
-
-    <label for="session_token">📄 AWS Session Token (Optional):</label>
-    <input type="text" id="session_token">
-  </div>
-
-  <div class="section">
-    <strong>🛠️ Select Action:</strong>
-    <label><input type="radio" name="action" value="analyze" checked> Analyze</label>
-    <label><input type="radio" name="action" value="dryrun"> Dry-run Delete</label>
-    <label><input type="radio" name="action" value="delete"> Actual Delete</label>
-  </div>
-
-  <button onclick="triggerWorkflow()">🚀 Trigger Workflow</button>
-
+  <h1>🧹 EC2 Cleanup UI</h1>
+  <label for="tokenInput">GitHub PAT Token:</label>
+  <input id="tokenInput" type="password" placeholder="Enter GitHub token..." /><br><br>
+  <label for="artifactUrl">Artifact URL:</label>
+  <input id="artifactUrl" type="text" placeholder="Enter GitHub artifact URL..." />
+  <button onclick="fetchAndDisplayArtifact(artifactUrl.value)">Load Analysis</button>
+  <div id="results" style="margin-top: 2em;"></div>
   <script src="app.js"></script>
 </body>
 </html>

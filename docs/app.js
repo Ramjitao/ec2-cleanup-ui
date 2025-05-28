@@ -1,46 +1,49 @@
-async function triggerWorkflow() {
-  const token = document.getElementById('pat').value;
-  const owner = document.getElementById('owner').value;
-  const repo = document.getElementById('repo').value;
-  const workflowFileName = document.getElementById('workflow_file').value;
-  const region = document.getElementById('region').value || 'eu-west-1';
-  const action = document.querySelector('input[name="action"]:checked').value;
-  const accessKey = document.getElementById('access_key').value;
-  const secretKey = document.getElementById('secret_key').value;
-  const sessionToken = document.getElementById('session_token').value;
 
-  const inputs = {
-    region,
-    action,
-    access_key_id: accessKey,
-    secret_access_key: secretKey
-  };
-
-  if (sessionToken) {
-    inputs.session_token = sessionToken;
-  }
-
-  try {
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowFileName}/dispatches`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      },
-      body: JSON.stringify({
-        ref: 'main',
-        inputs
-      })
-    });
-
-    if (response.ok) {
-      alert("✅ Workflow triggered successfully.");
-    } else {
-      const error = await response.json();
-      alert(`❌ Failed to trigger: ${error.message}`);
+async function fetchAndDisplayArtifact(url) {
+  const tokenInput = document.getElementById('tokenInput');
+  const resultsDiv = document.getElementById('results');
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${tokenInput.value}`
     }
-  } catch (err) {
-    console.error(err);
-    alert("❌ Error triggering workflow. See console.");
+  });
+
+  const blob = await response.blob();
+  const zip = await JSZip.loadAsync(blob);
+  const file = zip.file("output.json");
+
+  if (!file) {
+    resultsDiv.innerHTML = "<p>❌ output.json not found in artifact.</p>";
+    return;
   }
+
+  const content = await file.async("string");
+  const data = JSON.parse(content);
+
+  resultsDiv.innerHTML = "";
+
+  if (data.length === 0) {
+    resultsDiv.innerHTML = "<p>✅ No unused AMIs or snapshots found.</p>";
+    return;
+  }
+
+  data.forEach((entry, index) => {
+    const div = document.createElement("div");
+    div.style.marginBottom = "1.5em";
+    div.style.border = "1px solid #ccc";
+    div.style.padding = "1em";
+    div.style.borderRadius = "5px";
+    div.innerHTML = `
+      <h4>🔍 AMI ${index + 1}</h4>
+      <ul>
+        <li><strong>AMI ID:</strong> ${entry.ami_id}</li>
+        <li><strong>Created At:</strong> ${new Date(entry.created_at).toLocaleString()}</li>
+        <li><strong>Snapshots:</strong> ${entry.snapshot_ids.join(', ')}</li>
+        <li><strong>Volumes:</strong> ${entry.volumes.join(', ')}</li>
+        <li><strong>Used by EC2:</strong> ${entry.in_use_by.ec2_instances.length > 0 ? entry.in_use_by.ec2_instances.join(', ') : '❌ No'}</li>
+        <li><strong>Used by Auto Scaling Groups:</strong> ${entry.in_use_by.autoscaling_groups.length > 0 ? entry.in_use_by.autoscaling_groups.join(', ') : '❌ No'}</li>
+      </ul>
+    `;
+    resultsDiv.appendChild(div);
+  });
 }
