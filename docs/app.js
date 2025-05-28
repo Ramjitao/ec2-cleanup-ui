@@ -95,33 +95,12 @@ document.getElementById('trigger-form').addEventListener('submit', async (e) => 
     statusEl.innerText = `Workflow run status: ${status}` + (status === 'completed' ? `, conclusion: ${conclusion}` : '');
 
 if (status === 'completed') {
+  // Link to GitHub Actions run
   artifactLinkEl.innerHTML = `<a href="${runUrl}" target="_blank" rel="noopener noreferrer">📄 View Workflow Run on GitHub</a>`;
 
-  try {
-    const artifactsResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`, {
-      headers: { Authorization: `Bearer ${pat}` }
-    });
-
-    if (!artifactsResp.ok) {
-      artifactLinkEl.innerHTML += `<br>⚠️ Failed to fetch artifacts: ${await artifactsResp.text()}`;
-      return;
-    }
-
-    const artifactsData = await artifactsResp.json();
-    if (artifactsData.total_count > 0) {
-      // Try to find artifact named "results" (case-insensitive)
-      const resultsArtifact = artifactsData.artifacts.find(a => a.name.toLowerCase().includes('results'));
-      if (resultsArtifact) {
-        artifactLinkEl.innerHTML += `<br><a href="${resultsArtifact.archive_download_url}" target="_blank" rel="noopener noreferrer">📥 Download Results Artifact (ZIP)</a>`;
-      } else {
-        artifactLinkEl.innerHTML += `<br>⚠️ No 'results' artifact found, but artifacts exist.`;
-      }
-    } else {
-      artifactLinkEl.innerHTML += `<br>⚠️ No artifacts found for this run.`;
-    }
-  } catch (err) {
-    artifactLinkEl.innerHTML += `<br>⚠️ Error fetching artifacts: ${err.message}`;
-  }
+  // Link to results.html hosted on GitHub Pages
+  const resultsUrl = `https://${owner}.github.io/${repo}/results.html`;
+  artifactLinkEl.innerHTML += `<br><a href="${resultsUrl}" target="_blank" rel="noopener noreferrer">🌐 View Results Page</a>`;
 
   break;
 }
