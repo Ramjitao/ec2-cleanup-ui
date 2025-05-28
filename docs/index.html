@@ -1,36 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>EC2 Cleanup UI</title>
-  <script defer src="app.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EC2 Cleanup UI</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+  label { display: block; margin-top: 10px; }
+  input, select { width: 100%; padding: 8px; margin-top: 5px; }
+  button { margin-top: 20px; padding: 10px 20px; }
+  #status { margin-top: 20px; font-weight: bold; }
+  #artifacts a { display: block; margin-top: 5px; }
+</style>
 </head>
 <body>
-  <h1>EC2 Cleanup Utility</h1>
+<h1>EC2 Cleanup Workflow Trigger</h1>
 
-  <h3>🔐 AWS Credentials</h3>
-  <label>AWS Access Key ID: <input type="text" id="awsAccessKeyId"></label><br>
-  <label>AWS Secret Access Key: <input type="password" id="awsSecretAccessKey"></label><br>
-  <label>AWS Session Token (optional): <input type="text" id="awsSessionToken"></label><br>
-  <label>AWS Region: <input type="text" id="region" value="eu-west-1"></label><br>
+<form id="triggerForm">
+  <label>
+    GitHub Personal Access Token (PAT):
+    <input type="password" id="pat" required />
+  </label>
+  <label>
+    GitHub Repo Owner:
+    <input type="text" id="owner" placeholder="e.g. your-org-or-username" required />
+  </label>
+  <label>
+    GitHub Repo Name:
+    <input type="text" id="repo" placeholder="e.g. your-repo-name" required />
+  </label>
+  <label>
+    AWS Region:
+    <input type="text" id="region" value="eu-west-1" />
+  </label>
+  <label>
+    Action:
+    <select id="action">
+      <option value="analyze">Analyze</option>
+      <option value="dryrun_delete">Dry Run Delete</option>
+      <option value="delete">Delete</option>
+    </select>
+  </label>
+  <label>
+    AWS Access Key ID:
+    <input type="text" id="accessKeyId" required />
+  </label>
+  <label>
+    AWS Secret Access Key:
+    <input type="password" id="secretAccessKey" required />
+  </label>
+  <label>
+    AWS Session Token (optional):
+    <input type="text" id="sessionToken" />
+  </label>
 
-  <h3>🐙 GitHub Settings</h3>
-  <label>GitHub PAT: <input type="password" id="githubToken"></label><br>
-  <label>GitHub Owner: <input type="text" id="repoOwner"></label><br>
-  <label>Repository Name: <input type="text" id="repoName"></label><br>
-  <label>Workflow File Name (e.g., cleanup.yml): <input type="text" id="workflowFileName" value="cleanup.yml"></label><br>
+  <button type="submit">Trigger Workflow</button>
+</form>
 
-  <h3>🛠️ Choose Action</h3>
-  <select id="action">
-    <option value="analyze">Analyze</option>
-    <option value="dryrun_delete">Dry Run Delete</option>
-    <option value="delete">Delete</option>
-  </select>
+<div id="status"></div>
+<div id="artifacts"></div>
 
-  <br><br>
-  <button onclick="triggerWorkflow()">🚀 Trigger Cleanup</button>
-
-  <h3>Status:</h3>
-  <pre id="statusBox">Waiting...</pre>
+<script src="app.js"></script>
 </body>
 </html>
