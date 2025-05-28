@@ -1,4 +1,4 @@
-name: EC2 Volume Cleanup
+name: EC2 Snapshot/Volume/AMI Cleanup
 
 on:
   workflow_dispatch:
@@ -7,10 +7,10 @@ on:
         description: "AWS Region"
         required: false
         default: "eu-west-1"
-      auto_confirm:
-        description: "Auto-confirm deletion"
+      operation:
+        description: "Choose operation: analyze, dryrun, delete"
         required: true
-        default: "false"
+        default: "analyze"
       access_key_id:
         description: "AWS Access Key ID"
         required: true
@@ -18,12 +18,17 @@ on:
         description: "AWS Secret Access Key"
         required: true
       session_token:
-        description: "AWS Session Token"
+        description: "AWS Session Token (if using temporary credentials)"
         required: false
+      snapshot_ids:
+        description: "Comma-separated snapshot IDs to delete (for dryrun or delete)"
+        required: false
+        default: ""
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -36,12 +41,24 @@ jobs:
       - name: Install dependencies
         run: pip install boto3
 
-      - name: Run cleanup script
+      - name: Run selected cleanup script
         env:
           AWS_ACCESS_KEY_ID: ${{ github.event.inputs.access_key_id }}
           AWS_SECRET_ACCESS_KEY: ${{ github.event.inputs.secret_access_key }}
           AWS_SESSION_TOKEN: ${{ github.event.inputs.session_token }}
         run: |
-          python ec2_volume_cleanup.py \
-            --region "${{ github.event.inputs.region }}" \
-            $([[ "${{ github.event.inputs.auto_confirm }}" == "true" ]] && echo "--yes" || true)
+          case "${{ github.event.inputs.operation }}" in
+            analyze)
+              python analyze.py --region "${{ github.event.inputs.region }}"
+              ;;
+            dryrun)
+              python dryrun_delete.py --region "${{ github.event.inputs.region }}" --snapshots "${{ github.event.inputs.snapshot_ids }}"
+              ;;
+            delete)
+              python delete.py --region "${{ github.event.inputs.region }}" --snapshots "${{ github.event.inputs.snapshot_ids }}"
+              ;;
+            *)
+              echo "❌ Invalid operation: ${{ github.event.inputs.operation }}"
+              exit 1
+              ;;
+          esac
