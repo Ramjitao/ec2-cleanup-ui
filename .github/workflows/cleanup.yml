@@ -27,8 +27,11 @@ jobs:
     name: EC2 Cleanup Operation
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
+        with:
+          ref: main  # Ensure we’re on the branch serving GitHub Pages
+          persist-credentials: false  # We'll use our own token for pushing
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -38,67 +41,35 @@ jobs:
       - name: Install dependencies
         run: pip install boto3
 
-      - name: Create output directory
-        run: mkdir -p output
-
-      - name: Run cleanup script based on action
+      - name: Run cleanup script and generate results.html
         env:
           AWS_ACCESS_KEY_ID: ${{ github.event.inputs.access_key_id }}
           AWS_SECRET_ACCESS_KEY: ${{ github.event.inputs.secret_access_key }}
           AWS_SESSION_TOKEN: ${{ github.event.inputs.session_token }}
         run: |
+          mkdir -p output
           case "${{ github.event.inputs.action }}" in
             analyze)
-              python scripts/analyze.py --region "${{ github.event.inputs.region }}"
+              python scripts/analyze.py --region "${{ github.event.inputs.region }}" > output/results.html
               ;;
             dryrun_delete)
-              python scripts/dryrun_delete.py --region "${{ github.event.inputs.region }}"
+              python scripts/dryrun_delete.py --region "${{ github.event.inputs.region }}" > output/results.html
               ;;
             delete)
-              python scripts/delete.py --region "${{ github.event.inputs.region }}"
+              python scripts/delete.py --region "${{ github.event.inputs.region }}" > output/results.html
               ;;
             *)
-              echo "Invalid action input"; exit 1;
+              echo "Invalid action input" > output/results.html
               ;;
           esac
 
-      - name: Upload cleanup results as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cleanup-results
-          path: output/
-
-  deploy-results:
-    name: Deploy Results to GitHub Pages
-    needs: ec2-cleanup
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout gh-pages branch
-        uses: actions/checkout@v3
-        with:
-          ref: gh-pages
-          persist-credentials: true
-
-      - name: Download artifact from cleanup job
-        uses: actions/download-artifact@v4
-        with:
-          name: cleanup-results
-          path: ./output
-
-      - name: Copy results.html to root of gh-pages
+      - name: Commit and push results.html to main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -f ./output/results.html ]; then
-            cp ./output/results.html ./results.html
-          else
-            echo "results.html not found in output/"
-            exit 1
-          fi
-
-      - name: Commit and push results.html to gh-pages
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
+          cp output/results.html ./results.html
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
           git add results.html
-          git commit -m "🔄 Update results.html from latest cleanup"
-          git push origin gh-pages
+          git commit -m "🚀 Auto-update results.html from cleanup run" || echo "No changes to commit"
+          git push origin main
