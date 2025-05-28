@@ -30,8 +30,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
         with:
-          ref: main  # Ensure we’re on the branch serving GitHub Pages
-          persist-credentials: false  # We'll use our own token for pushing
+          ref: main  # Ensure we’re on the GitHub Pages branch
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -63,13 +63,13 @@ jobs:
               ;;
           esac
 
-      - name: Commit and push results.html to main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push results.html to main branch
         run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           cp output/results.html ./results.html
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@users.noreply.github.com"
           git add results.html
           git commit -m "🚀 Auto-update results.html from cleanup run" || echo "No changes to commit"
-          git push origin main
+          git push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
