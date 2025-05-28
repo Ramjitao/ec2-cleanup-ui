@@ -1,92 +1,111 @@
 import boto3
 import argparse
+import json
 import os
-from datetime import datetime
+from collections import defaultdict
 
-def get_all_amis(ec2_client):
-    response = ec2_client.describe_images(Owners=['self'])
-    return response['Images']
+def get_asg_ami_usage(asg_client, ec2_client):
+    """Get AMI usage in Auto Scaling Groups (ASGs)."""
+    asg_amis = defaultdict(list)
+    paginator = asg_client.get_paginator('describe_auto_scaling_groups')
+    for page in paginator.paginate():
+        for asg in page['AutoScalingGroups']:
+            asg_name = asg['AutoScalingGroupName']
+            for instance in asg['Instances']:
+                image_id = instance['ImageId']
+                asg_amis[image_id].append(asg_name)
+    return asg_amis
 
-def get_all_instances(ec2_client):
-    response = ec2_client.describe_instances()
-    instances = []
-    for reservation in response['Reservations']:
-        instances.extend(reservation['Instances'])
-    return instances
+def get_all_amis(ec2_client, region):
+    """Get all AMIs owned by self."""
+    images = ec2_client.describe_images(Owners=['self'])
+    ami_list = []
+    for img in images['Images']:
+        ami_list.append({
+            'ImageId': img['ImageId'],
+            'Name': img.get('Name', ''),
+            'CreationDate': img.get('CreationDate', ''),
+            'State': img.get('State', ''),
+            'Region': region
+        })
+    return ami_list
 
-def get_asg_ami_usage(asg_client):
-    asg_ami_map = {}
-    response = asg_client.describe_auto_scaling_groups()
-    for group in response['AutoScalingGroups']:
-        if group.get('LaunchTemplate'):
-            lt = group['LaunchTemplate']
-            version = lt.get('Version') or '$Default'
-            lt_client = boto3.client('ec2')
-            lt_data = lt_client.describe_launch_template_versions(
-                LaunchTemplateId=lt['LaunchTemplateId'],
-                Versions=[version]
-            )
-            ami_id = lt_data['LaunchTemplateVersions'][0]['LaunchTemplateData'].get('ImageId')
-            if ami_id:
-                asg_ami_map[ami_id] = group['AutoScalingGroupName']
-        elif group.get('LaunchConfigurationName'):
-            lc_name = group['LaunchConfigurationName']
-            lc_resp = asg_client.describe_launch_configurations(LaunchConfigurationNames=[lc_name])
-            for lc in lc_resp['LaunchConfigurations']:
-                ami_id = lc['ImageId']
-                asg_ami_map[ami_id] = group['AutoScalingGroupName']
-    return asg_ami_map
+def get_all_snapshots(ec2_client, region):
+    """Get all snapshots owned by self."""
+    snapshots = []
+    paginator = ec2_client.get_paginator('describe_snapshots')
+    for page in paginator.paginate(OwnerIds=['self']):
+        for snap in page['Snapshots']:
+            snapshots.append({
+                'SnapshotId': snap['SnapshotId'],
+                'Description': snap.get('Description', ''),
+                'StartTime': snap.get('StartTime').strftime('%Y-%m-%dT%H:%M:%S'),
+                'VolumeId': snap.get('VolumeId', ''),
+                'Region': region
+            })
+    return snapshots
+
+def get_all_volumes(ec2_client, region):
+    """Get all EBS volumes owned by self."""
+    volumes = []
+    paginator = ec2_client.get_paginator('describe_volumes')
+    for page in paginator.paginate():
+        for vol in page['Volumes']:
+            volumes.append({
+                'VolumeId': vol['VolumeId'],
+                'Size': vol['Size'],
+                'State': vol['State'],
+                'CreateTime': vol['CreateTime'].strftime('%Y-%m-%dT%H:%M:%S'),
+                'Region': region
+            })
+    return volumes
+
+def save_to_file(data, filename):
+    """Save data as pretty JSON to file inside output directory."""
+    os.makedirs('output', exist_ok=True)
+    with open(os.path.join('output', filename), 'w') as f:
+        json.dump(data, f, indent=2)
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--region', required=True, help='AWS region')
+    parser = argparse.ArgumentParser(description="Analyze AWS EC2 AMIs, Snapshots, Volumes, and ASG usage")
+    parser.add_argument('--region', default='eu-west-1', help='AWS region')
     args = parser.parse_args()
 
-    ec2_client = boto3.client('ec2', region_name=args.region)
-    asg_client = boto3.client('autoscaling', region_name=args.region)
+    region = args.region
 
-    amis = get_all_amis(ec2_client)
-    instances = get_all_instances(ec2_client)
-    asg_usage = get_asg_ami_usage(asg_client)
+    print(f"Using AWS region: {region}")
 
-    in_use_amis = set()
-    for instance in instances:
-        if 'ImageId' in instance:
-            in_use_amis.add(instance['ImageId'])
+    # Create boto3 clients with explicit region
+    ec2_client = boto3.client('ec2', region_name=region)
+    asg_client = boto3.client('autoscaling', region_name=region)
 
-    os.makedirs("output", exist_ok=True)
-    with open("output/results.txt", "w") as f:
-        header = "AMI ID | In Use | Snapshot ID | Volume ID(s) | ASG Name | Created Date"
-        f.write(header + "\n")
+    # Get data
+    print("Fetching AMIs...")
+    amis = get_all_amis(ec2_client, region)
 
-        for ami in amis:
-            ami_id = ami['ImageId']
-            creation_date = ami.get('CreationDate', '')[:10]
-            snapshot_ids = []
-            volume_ids = []
+    print("Fetching Snapshots...")
+    snapshots = get_all_snapshots(ec2_client, region)
 
-            for bd in ami.get('BlockDeviceMappings', []):
-                if 'Ebs' in bd:
-                    snapshot_id = bd['Ebs'].get('SnapshotId')
-                    if snapshot_id:
-                        snapshot_ids.append(snapshot_id)
+    print("Fetching Volumes...")
+    volumes = get_all_volumes(ec2_client, region)
 
-            # Try to get volume ids from snapshots
-            for snap_id in snapshot_ids:
-                try:
-                    snap = ec2_client.describe_snapshots(SnapshotIds=[snap_id])['Snapshots'][0]
-                    volume_id = snap.get('VolumeId')
-                    if volume_id:
-                        volume_ids.append(volume_id)
-                except Exception:
-                    pass  # snapshot may be shared or deleted
+    print("Fetching ASG AMI usage...")
+    asg_amis = get_asg_ami_usage(asg_client, ec2_client)
 
-            in_use = "Yes" if ami_id in in_use_amis or ami_id in asg_usage else "No"
-            asg_name = asg_usage.get(ami_id, "-")
-            line = f"{ami_id} | {in_use} | {','.join(snapshot_ids)} | {','.join(volume_ids)} | {asg_name} | {creation_date}"
-            f.write(line + "\n")
+    # Save output files
+    print("Saving AMIs to output/amis.json")
+    save_to_file(amis, 'amis.json')
 
-    print("✅ Analysis complete. Results written to output/results.txt")
+    print("Saving Snapshots to output/snapshots.json")
+    save_to_file(snapshots, 'snapshots.json')
+
+    print("Saving Volumes to output/volumes.json")
+    save_to_file(volumes, 'volumes.json')
+
+    print("Saving ASG AMI usage to output/asg_ami_usage.json")
+    save_to_file(asg_amis, 'asg_ami_usage.json')
+
+    print("Analyze complete.")
 
 if __name__ == "__main__":
     main()
