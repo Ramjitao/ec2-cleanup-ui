@@ -8,145 +8,96 @@ document.getElementById('trigger-form').addEventListener('submit', async (e) => 
   const awsKey = document.getElementById('awsKey').value.trim();
   const awsSecret = document.getElementById('awsSecret').value.trim();
   const awsToken = document.getElementById('awsToken').value.trim();
-  const action = document.getElementById('action').value.trim();
+  const action = document.getElementById('action').value;
 
   const statusEl = document.getElementById('status');
   const artifactLinkEl = document.getElementById('artifact-link');
 
-  statusEl.innerText = '✅ Triggering workflow...';
+  statusEl.innerText = '🚀 Triggering workflow...';
   artifactLinkEl.innerHTML = '';
 
-  try {
-    // Trigger workflow_dispatch event
-    const dispatchResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/cleanup.yml/dispatches`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${pat}`,
-        'Accept': 'application/vnd.github+json'
-      },
-      body: JSON.stringify({
-        ref: 'main',
-        inputs: {
-          region,
-          access_key_id: awsKey,
-          secret_access_key: awsSecret,
-          session_token: awsToken,
-          action
-        }
-      })
+  // Trigger the workflow dispatch
+  const dispatchResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/cleanup.yml/dispatches`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${pat}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      ref: 'main',
+      inputs: {
+        region,
+        access_key_id: awsKey,
+        secret_access_key: awsSecret,
+        session_token: awsToken,
+        action
+      }
+    })
+  });
+
+  if (!dispatchResp.ok) {
+    statusEl.innerText = `❌ Failed to trigger workflow: ${await dispatchResp.text()}`;
+    return;
+  }
+
+  statusEl.innerText = '⏳ Workflow triggered, waiting for run to appear...';
+
+  // Poll to find the latest run triggered by this dispatch
+  let runId = null;
+  let runUrl = null;
+
+  for (let i = 0; i < 20; i++) { // up to ~100 seconds wait for the run to appear
+    await new Promise(res => setTimeout(res, 5000));
+
+    const runsResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?branch=main&event=workflow_dispatch`, {
+      headers: { Authorization: `Bearer ${pat}` }
     });
 
-    if (!dispatchResp.ok) {
-      const errorText = await dispatchResp.text();
-      statusEl.innerText = `❌ Failed to trigger workflow: ${errorText}`;
+    if (!runsResp.ok) {
+      statusEl.innerText = `❌ Failed to fetch workflow runs: ${await runsResp.text()}`;
       return;
     }
 
-    statusEl.innerText = '✅ Workflow triggered. Waiting for the run to start...';
+    const runsData = await runsResp.json();
+    // Sort runs by creation date descending, find the most recent run triggered by dispatch
+    const sortedRuns = runsData.workflow_runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    if (sortedRuns.length > 0) {
+      runId = sortedRuns[0].id;
+      runUrl = sortedRuns[0].html_url;
+      break;
+    }
+  }
 
-    // Poll every 5 seconds for workflow run status
-    const workflowName = "EC2 Cleanup Operation";
-    const maxWaitTimeMs = 10 * 60 * 1000; // 10 minutes
-    const pollIntervalMs = 5000;
-    const startTime = Date.now();
+  if (!runId) {
+    statusEl.innerText = '❌ Could not find the workflow run triggered.';
+    return;
+  }
 
-    let runId = null;
+  // Now poll the exact run status
+  statusEl.innerText = `⏳ Workflow run started: #${runId}. Monitoring status...`;
 
-    while (true) {
-      if (Date.now() - startTime > maxWaitTimeMs) {
-        statusEl.innerText = '⏰ Timeout waiting for workflow to complete.';
-        break;
-      }
+  while (true) {
+    await new Promise(res => setTimeout(res, 5000));
 
-      // Get latest workflow runs
-      const runsResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs?per_page=10`, {
-        headers: {
-          'Authorization': `Bearer ${pat}`,
-          'Accept': 'application/vnd.github+json'
-        }
-      });
+    const runResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}`, {
+      headers: { Authorization: `Bearer ${pat}` }
+    });
 
-      if (!runsResp.ok) {
-        statusEl.innerText = '❌ Failed to fetch workflow runs.';
-        break;
-      }
-
-      const { workflow_runs } = await runsResp.json();
-      // Find the latest run with matching workflow name
-      const run = workflow_runs.find(r => r.name === workflowName);
-
-      if (!run) {
-        statusEl.innerText = '⚠️ No workflow run found yet, retrying...';
-        await delay(pollIntervalMs);
-        continue;
-      }
-
-      runId = run.id;
-
-      statusEl.innerText = `Status: ${run.status.toUpperCase()}${run.conclusion ? ' - ' + run.conclusion.toUpperCase() : ''}`;
-
-      if (run.status === 'completed') {
-        if (run.conclusion === 'success') {
-          // Fetch artifacts and show them
-          await showArtifacts(owner, repo, runId, pat);
-        } else {
-          statusEl.innerText += ' (Failed or cancelled)';
-          artifactLinkEl.innerHTML = '';
-        }
-        break;
-      }
-
-      // Wait before next poll
-      await delay(pollIntervalMs);
+    if (!runResp.ok) {
+      statusEl.innerText = `❌ Failed to fetch run status: ${await runResp.text()}`;
+      break;
     }
 
-  } catch (error) {
-    statusEl.innerText = `❌ Error: ${error.message}`;
+    const runData = await runResp.json();
+    const { status, conclusion } = runData;
+
+    statusEl.innerText = `Workflow run status: ${status}` + (status === 'completed' ? `, conclusion: ${conclusion}` : '');
+
+    if (status === 'completed') {
+      // Show artifact or results link if you have a known URL or page
+      artifactLinkEl.innerHTML = `<a href="${runUrl}" target="_blank">📄 View Workflow Run on GitHub</a>`;
+      break;
+    }
   }
 });
-
-// Utility delay function
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Fetch artifacts for a given run and show links in UI
-async function showArtifacts(owner, repo, runId, pat) {
-  const artifactLinkEl = document.getElementById('artifact-link');
-  artifactLinkEl.innerHTML = 'Fetching artifacts...';
-
-  const artifactsResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`, {
-    headers: {
-      'Authorization': `Bearer ${pat}`,
-      'Accept': 'application/vnd.github+json'
-    }
-  });
-
-  if (!artifactsResp.ok) {
-    artifactLinkEl.innerHTML = '❌ Failed to fetch artifacts.';
-    return;
-  }
-
-  const data = await artifactsResp.json();
-
-  if (data.total_count === 0) {
-    artifactLinkEl.innerHTML = 'No artifacts found.';
-    return;
-  }
-
-  // Show all artifact download links
-  const links = data.artifacts.map(artifact => {
-    return `<li><a href="${artifact.archive_download_url}" target="_blank" rel="noopener noreferrer">${artifact.name}</a> (${formatBytes(artifact.size_in_bytes)})</li>`;
-  }).join('');
-
-  artifactLinkEl.innerHTML = `<ul>${links}</ul>`;
-}
-
-// Utility to format bytes nicely
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
