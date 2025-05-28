@@ -14,16 +14,21 @@ on:
         description: "AWS Secret Access Key"
         required: true
       session_token:
-        description: "AWS Session Token"
+        description: "AWS Session Token (optional)"
         required: false
       action:
-        description: "Choose operation: analyze, dryrun, delete"
+        description: "Choose action: analyze | dryrun_delete | delete"
         required: true
         default: "analyze"
 
 jobs:
-  cleanup:
+  ec2_cleanup:
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ github.event.inputs.access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ github.event.inputs.secret_access_key }}
+      AWS_SESSION_TOKEN: ${{ github.event.inputs.session_token }}
+      REGION: ${{ github.event.inputs.region }}
 
     steps:
       - name: Checkout code
@@ -37,27 +42,25 @@ jobs:
       - name: Install dependencies
         run: pip install boto3
 
-      - name: Run selected cleanup action
-        env:
-          AWS_ACCESS_KEY_ID: ${{ github.event.inputs.access_key_id }}
-          AWS_SECRET_ACCESS_KEY: ${{ github.event.inputs.secret_access_key }}
-          AWS_SESSION_TOKEN: ${{ github.event.inputs.session_token }}
+      - name: List repo structure (for debug)
+        run: ls -R
+
+      - name: Run the selected action
         run: |
+          echo "Running action: ${{ github.event.inputs.action }}"
+
           case "${{ github.event.inputs.action }}" in
             analyze)
-              echo "Running analysis..."
-              python analyze.py --region "${{ github.event.inputs.region }}"
+              python scripts/analyze.py --region "${{ env.REGION }}"
               ;;
-            dryrun)
-              echo "Running dry-run deletion..."
-              python dryrun_delete.py --region "${{ github.event.inputs.region }}"
+            dryrun_delete)
+              python scripts/dryrun_delete.py --region "${{ env.REGION }}"
               ;;
             delete)
-              echo "Running actual deletion..."
-              python delete.py --region "${{ github.event.inputs.region }}"
+              python scripts/delete.py --region "${{ env.REGION }}"
               ;;
             *)
-              echo "❌ Invalid action selected: '${{ github.event.inputs.action }}'"
+              echo "❌ Invalid action: ${{ github.event.inputs.action }}"
               exit 1
               ;;
           esac
