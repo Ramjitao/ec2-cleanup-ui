@@ -8,12 +8,21 @@ def get_asg_ami_usage(asg_client, ec2_client):
     """Get AMI usage in Auto Scaling Groups (ASGs)."""
     asg_amis = defaultdict(list)
     paginator = asg_client.get_paginator('describe_auto_scaling_groups')
+
     for page in paginator.paginate():
         for asg in page['AutoScalingGroups']:
             asg_name = asg['AutoScalingGroupName']
-            for instance in asg['Instances']:
-                image_id = instance['ImageId']
-                asg_amis[image_id].append(asg_name)
+            instance_ids = [instance['InstanceId'] for instance in asg['Instances']]
+
+            if not instance_ids:
+                continue
+
+            # Describe instances to get ImageIds
+            response = ec2_client.describe_instances(InstanceIds=instance_ids)
+            for reservation in response['Reservations']:
+                for instance in reservation['Instances']:
+                    image_id = instance['ImageId']
+                    asg_amis[image_id].append(asg_name)
     return asg_amis
 
 def get_all_amis(ec2_client, region):
