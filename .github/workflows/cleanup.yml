@@ -73,8 +73,8 @@ jobs:
           # Use token-authenticated remote
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
 
-          cp output/results.html ./results.html
-          git add results.html
+          cp output/results.html ./docs/output.html
+          git add docs/output.html
           git commit -m "🚀 Auto-update results.html from cleanup run" || echo "No changes to commit"
           git push origin HEAD:main
 
