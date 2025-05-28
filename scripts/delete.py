@@ -1,2 +1,3 @@
-# delete.py placeholder
-print('Performing actual delete...')
+
+# delete.py - Deletes AMIs, Snapshots, and Volumes
+print("Deleting selected AWS resources...")

@@ -7,6 +7,10 @@ on:
         description: "AWS Region"
         required: false
         default: "eu-west-1"
+      action:
+        description: "Choose action: analyze | dryrun_delete | delete"
+        required: true
+        default: "analyze"
       access_key_id:
         description: "AWS Access Key ID"
         required: true
@@ -16,22 +20,14 @@ on:
       session_token:
         description: "AWS Session Token (optional)"
         required: false
-      action:
-        description: "Choose action: analyze | dryrun_delete | delete"
-        required: true
-        default: "analyze"
 
 jobs:
-  ec2_cleanup:
+  ec2-cleanup:
     runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ github.event.inputs.access_key_id }}
-      AWS_SECRET_ACCESS_KEY: ${{ github.event.inputs.secret_access_key }}
-      AWS_SESSION_TOKEN: ${{ github.event.inputs.session_token }}
-      REGION: ${{ github.event.inputs.region }}
+    name: EC2 Cleanup Operation
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -42,25 +38,32 @@ jobs:
       - name: Install dependencies
         run: pip install boto3
 
-      - name: List repo structure (for debug)
-        run: ls -R
+      - name: Create output directory
+        run: mkdir -p output
 
-      - name: Run the selected action
+      - name: Run cleanup script based on action
+        env:
+          AWS_ACCESS_KEY_ID: ${{ github.event.inputs.access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ github.event.inputs.secret_access_key }}
+          AWS_SESSION_TOKEN: ${{ github.event.inputs.session_token }}
         run: |
-          echo "Running action: ${{ github.event.inputs.action }}"
-
           case "${{ github.event.inputs.action }}" in
             analyze)
-              python scripts/analyze.py --region "${{ env.REGION }}"
+              python scripts/analyze.py --region "${{ github.event.inputs.region }}"
               ;;
             dryrun_delete)
-              python scripts/dryrun_delete.py --region "${{ env.REGION }}"
+              python scripts/dryrun_delete.py --region "${{ github.event.inputs.region }}"
               ;;
             delete)
-              python scripts/delete.py --region "${{ env.REGION }}"
+              python scripts/delete.py --region "${{ github.event.inputs.region }}"
               ;;
             *)
-              echo "❌ Invalid action: ${{ github.event.inputs.action }}"
-              exit 1
+              echo "Invalid action input"; exit 1;
               ;;
           esac
+
+      - name: Upload cleanup results as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: cleanup-results
+          path: output/

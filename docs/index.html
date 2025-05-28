@@ -1,19 +1,36 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>EC2 Cleanup UI</title>
+  <script defer src="app.js"></script>
 </head>
 <body>
-  <h1>🧹 EC2 Cleanup UI</h1>
-  <label for="tokenInput">GitHub PAT Token:</label>
-  <input id="tokenInput" type="password" placeholder="Enter GitHub token..." /><br><br>
-  <label for="artifactUrl">Artifact URL:</label>
-  <input id="artifactUrl" type="text" placeholder="Enter GitHub artifact URL..." />
-  <button onclick="fetchAndDisplayArtifact(artifactUrl.value)">Load Analysis</button>
-  <div id="results" style="margin-top: 2em;"></div>
-  <script src="app.js"></script>
+  <h1>EC2 Cleanup Utility</h1>
+
+  <h3>🔐 AWS Credentials</h3>
+  <label>AWS Access Key ID: <input type="text" id="awsAccessKeyId"></label><br>
+  <label>AWS Secret Access Key: <input type="password" id="awsSecretAccessKey"></label><br>
+  <label>AWS Session Token (optional): <input type="text" id="awsSessionToken"></label><br>
+  <label>AWS Region: <input type="text" id="region" value="eu-west-1"></label><br>
+
+  <h3>🐙 GitHub Settings</h3>
+  <label>GitHub PAT: <input type="password" id="githubToken"></label><br>
+  <label>GitHub Owner: <input type="text" id="repoOwner"></label><br>
+  <label>Repository Name: <input type="text" id="repoName"></label><br>
+  <label>Workflow File Name (e.g., cleanup.yml): <input type="text" id="workflowFileName" value="cleanup.yml"></label><br>
+
+  <h3>🛠️ Choose Action</h3>
+  <select id="action">
+    <option value="analyze">Analyze</option>
+    <option value="dryrun_delete">Dry Run Delete</option>
+    <option value="delete">Delete</option>
+  </select>
+
+  <br><br>
+  <button onclick="triggerWorkflow()">🚀 Trigger Cleanup</button>
+
+  <h3>Status:</h3>
+  <pre id="statusBox">Waiting...</pre>
 </body>
 </html>
