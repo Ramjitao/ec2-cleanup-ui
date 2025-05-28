@@ -1,39 +1,92 @@
+import boto3
+import argparse
+import os
+from datetime import datetime
 
-# analyze.py - Analyzes AMIs, Snapshots, Volumes and dependencies
-import boto3, json
+def get_all_amis(ec2_client):
+    response = ec2_client.describe_images(Owners=['self'])
+    return response['Images']
 
-def analyze(region='eu-west-1'):
-    ec2 = boto3.client('ec2', region_name=region)
-    autoscaling = boto3.client('autoscaling', region_name=region)
+def get_all_instances(ec2_client):
+    response = ec2_client.describe_instances()
+    instances = []
+    for reservation in response['Reservations']:
+        instances.extend(reservation['Instances'])
+    return instances
 
-    amis = ec2.describe_images(Owners=['self'])['Images']
-    result = []
+def get_asg_ami_usage(asg_client):
+    asg_ami_map = {}
+    response = asg_client.describe_auto_scaling_groups()
+    for group in response['AutoScalingGroups']:
+        if group.get('LaunchTemplate'):
+            lt = group['LaunchTemplate']
+            version = lt.get('Version') or '$Default'
+            lt_client = boto3.client('ec2')
+            lt_data = lt_client.describe_launch_template_versions(
+                LaunchTemplateId=lt['LaunchTemplateId'],
+                Versions=[version]
+            )
+            ami_id = lt_data['LaunchTemplateVersions'][0]['LaunchTemplateData'].get('ImageId')
+            if ami_id:
+                asg_ami_map[ami_id] = group['AutoScalingGroupName']
+        elif group.get('LaunchConfigurationName'):
+            lc_name = group['LaunchConfigurationName']
+            lc_resp = asg_client.describe_launch_configurations(LaunchConfigurationNames=[lc_name])
+            for lc in lc_resp['LaunchConfigurations']:
+                ami_id = lc['ImageId']
+                asg_ami_map[ami_id] = group['AutoScalingGroupName']
+    return asg_ami_map
 
-    for ami in amis:
-        ami_id = ami['ImageId']
-        in_use = False
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--region', required=True, help='AWS region')
+    args = parser.parse_args()
 
-        ec2_instances = ec2.describe_instances(Filters=[{'Name': 'image-id', 'Values': [ami_id]}])
-        if ec2_instances['Reservations']:
-            in_use = True
+    ec2_client = boto3.client('ec2', region_name=args.region)
+    asg_client = boto3.client('autoscaling', region_name=args.region)
 
-        for asg in autoscaling.describe_auto_scaling_groups()['AutoScalingGroups']:
-            lt = asg.get('LaunchTemplate')
-            if lt:
-                versions = ec2.describe_launch_template_versions(LaunchTemplateId=lt['LaunchTemplateId'])['LaunchTemplateVersions']
-                for version in versions:
-                    if version['LaunchTemplateData'].get('ImageId') == ami_id:
-                        in_use = True
+    amis = get_all_amis(ec2_client)
+    instances = get_all_instances(ec2_client)
+    asg_usage = get_asg_ami_usage(asg_client)
 
-        result.append({
-            "ami_id": ami_id,
-            "creation_date": ami['CreationDate'],
-            "in_use": in_use,
-            "name": ami.get("Name", "N/A")
-        })
+    in_use_amis = set()
+    for instance in instances:
+        if 'ImageId' in instance:
+            in_use_amis.add(instance['ImageId'])
 
-    with open('output/analysis_report.json', 'w') as f:
-        json.dump(result, f, indent=2)
+    os.makedirs("output", exist_ok=True)
+    with open("output/results.txt", "w") as f:
+        header = "AMI ID | In Use | Snapshot ID | Volume ID(s) | ASG Name | Created Date"
+        f.write(header + "\n")
 
-if __name__ == '__main__':
-    analyze()
+        for ami in amis:
+            ami_id = ami['ImageId']
+            creation_date = ami.get('CreationDate', '')[:10]
+            snapshot_ids = []
+            volume_ids = []
+
+            for bd in ami.get('BlockDeviceMappings', []):
+                if 'Ebs' in bd:
+                    snapshot_id = bd['Ebs'].get('SnapshotId')
+                    if snapshot_id:
+                        snapshot_ids.append(snapshot_id)
+
+            # Try to get volume ids from snapshots
+            for snap_id in snapshot_ids:
+                try:
+                    snap = ec2_client.describe_snapshots(SnapshotIds=[snap_id])['Snapshots'][0]
+                    volume_id = snap.get('VolumeId')
+                    if volume_id:
+                        volume_ids.append(volume_id)
+                except Exception:
+                    pass  # snapshot may be shared or deleted
+
+            in_use = "Yes" if ami_id in in_use_amis or ami_id in asg_usage else "No"
+            asg_name = asg_usage.get(ami_id, "-")
+            line = f"{ami_id} | {in_use} | {','.join(snapshot_ids)} | {','.join(volume_ids)} | {asg_name} | {creation_date}"
+            f.write(line + "\n")
+
+    print("✅ Analysis complete. Results written to output/results.txt")
+
+if __name__ == "__main__":
+    main()

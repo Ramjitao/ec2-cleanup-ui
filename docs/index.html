@@ -1,65 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>EC2 Cleanup UI</title>
-<style>
-  body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-  label { display: block; margin-top: 10px; }
-  input, select { width: 100%; padding: 8px; margin-top: 5px; }
-  button { margin-top: 20px; padding: 10px 20px; }
-  #status { margin-top: 20px; font-weight: bold; }
-  #artifacts a { display: block; margin-top: 5px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EC2 Cleanup UI</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<h1>EC2 Cleanup Workflow Trigger</h1>
+  <h1>EC2 Cleanup UI</h1>
 
-<form id="triggerForm">
-  <label>
-    GitHub Personal Access Token (PAT):
-    <input type="password" id="pat" required />
-  </label>
-  <label>
-    GitHub Repo Owner:
-    <input type="text" id="owner" placeholder="e.g. your-org-or-username" required />
-  </label>
-  <label>
-    GitHub Repo Name:
-    <input type="text" id="repo" placeholder="e.g. your-repo-name" required />
-  </label>
-  <label>
-    AWS Region:
-    <input type="text" id="region" value="eu-west-1" />
-  </label>
-  <label>
-    Action:
-    <select id="action">
-      <option value="analyze">Analyze</option>
-      <option value="dryrun_delete">Dry Run Delete</option>
-      <option value="delete">Delete</option>
-    </select>
-  </label>
-  <label>
-    AWS Access Key ID:
-    <input type="text" id="accessKeyId" required />
-  </label>
-  <label>
-    AWS Secret Access Key:
-    <input type="password" id="secretAccessKey" required />
-  </label>
-  <label>
-    AWS Session Token (optional):
-    <input type="text" id="sessionToken" />
-  </label>
+  <form id="trigger-form">
+    <label>GitHub PAT: <input type="password" id="pat" required></label>
+    <label>Repo Owner: <input type="text" id="owner" required></label>
+    <label>Repo Name: <input type="text" id="repo" required></label>
+    <label>AWS Region: <input type="text" id="region" value="eu-west-1"></label>
+    <label>AWS Access Key: <input type="text" id="awsKey" required></label>
+    <label>AWS Secret: <input type="password" id="awsSecret" required></label>
+    <label>AWS Session Token: <input type="text" id="awsToken"></label>
+    <label>
+      Action:
+      <select id="action">
+        <option value="analyze">Analyze</option>
+        <option value="dryrun_delete">Dry-run Delete</option>
+        <option value="delete">Delete</option>
+      </select>
+    </label>
+    <button type="submit">🚀 Trigger</button>
+  </form>
 
-  <button type="submit">Trigger Workflow</button>
-</form>
-
-<div id="status"></div>
-<div id="artifacts"></div>
-
-<script src="app.js"></script>
+  <div id="status"></div>
+  <div id="artifact-link"></div>
 </body>
+<script src="app.js"></script>
 </html>
