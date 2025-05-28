@@ -1,28 +1,56 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>EC2 Cleanup UI</title>
-  <link rel="stylesheet" href="style.css">
+  <title>EC2 Cleanup Trigger</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    label, input, select { display: block; margin: 0.5rem 0; }
+    button { margin-top: 1rem; }
+    .section { margin-bottom: 2rem; }
+  </style>
 </head>
 <body>
-  <h1>🧹 EC2 Cleanup Dashboard</h1>
-  <form id="cleanupForm">
-    <label>GitHub PAT: <input type="password" id="pat" required></label><br>
-    <label>Repo Name (owner/repo): <input type="text" id="repo" required></label><br>
-    <label>Region: <input type="text" id="region" value="eu-west-1" required></label><br>
-    <label>AWS Access Key ID: <input type="text" id="accessKeyId" required></label><br>
-    <label>AWS Secret Access Key: <input type="password" id="secretAccessKey" required></label><br>
-    <label>AWS Session Token (optional): <input type="text" id="sessionToken"></label><br><br>
+  <h1>🧹 EC2 Cleanup Trigger</h1>
 
-    <label><input type="radio" name="action" value="analyze" checked> Analyze Resources</label><br>
-    <label><input type="radio" name="action" value="dryrun"> Dry-Run Delete</label><br>
-    <label><input type="radio" name="action" value="delete"> Actual Delete</label><br><br>
+  <div class="section">
+    <label for="pat">🔑 GitHub PAT Token:</label>
+    <input type="password" id="pat" placeholder="ghp_..." required>
 
-    <button type="submit">🚀 Trigger</button>
-  </form>
-  <pre id="output"></pre>
+    <label for="owner">📁 GitHub Owner:</label>
+    <input type="text" id="owner" placeholder="your-github-username-or-org" required>
+
+    <label for="repo">📦 GitHub Repository:</label>
+    <input type="text" id="repo" placeholder="your-repo-name" required>
+
+    <label for="workflow_file">📝 Workflow File Name:</label>
+    <input type="text" id="workflow_file" placeholder="cleanup.yml" required>
+  </div>
+
+  <div class="section">
+    <label for="region">🌍 AWS Region:</label>
+    <input type="text" id="region" value="eu-west-1">
+
+    <label for="access_key">🗝️ AWS Access Key ID:</label>
+    <input type="text" id="access_key" required>
+
+    <label for="secret_key">🔐 AWS Secret Access Key:</label>
+    <input type="password" id="secret_key" required>
+
+    <label for="session_token">📄 AWS Session Token (Optional):</label>
+    <input type="text" id="session_token">
+  </div>
+
+  <div class="section">
+    <strong>🛠️ Select Action:</strong>
+    <label><input type="radio" name="action" value="analyze" checked> Analyze</label>
+    <label><input type="radio" name="action" value="dryrun"> Dry-run Delete</label>
+    <label><input type="radio" name="action" value="delete"> Actual Delete</label>
+  </div>
+
+  <button onclick="triggerWorkflow()">🚀 Trigger Workflow</button>
+
   <script src="app.js"></script>
 </body>
 </html>

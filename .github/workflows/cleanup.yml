@@ -1,4 +1,4 @@
-name: EC2 Snapshot/Volume/AMI Cleanup
+name: EC2 Cleanup Workflow
 
 on:
   workflow_dispatch:
@@ -7,10 +7,6 @@ on:
         description: "AWS Region"
         required: false
         default: "eu-west-1"
-      operation:
-        description: "Choose operation: analyze, dryrun, delete"
-        required: true
-        default: "analyze"
       access_key_id:
         description: "AWS Access Key ID"
         required: true
@@ -18,12 +14,12 @@ on:
         description: "AWS Secret Access Key"
         required: true
       session_token:
-        description: "AWS Session Token (if using temporary credentials)"
+        description: "AWS Session Token"
         required: false
-      snapshot_ids:
-        description: "Comma-separated snapshot IDs to delete (for dryrun or delete)"
-        required: false
-        default: ""
+      action:
+        description: "Choose operation: analyze, dryrun, delete"
+        required: true
+        default: "analyze"
 
 jobs:
   cleanup:
@@ -41,24 +37,27 @@ jobs:
       - name: Install dependencies
         run: pip install boto3
 
-      - name: Run selected cleanup script
+      - name: Run selected cleanup action
         env:
           AWS_ACCESS_KEY_ID: ${{ github.event.inputs.access_key_id }}
           AWS_SECRET_ACCESS_KEY: ${{ github.event.inputs.secret_access_key }}
           AWS_SESSION_TOKEN: ${{ github.event.inputs.session_token }}
         run: |
-          case "${{ github.event.inputs.operation }}" in
+          case "${{ github.event.inputs.action }}" in
             analyze)
+              echo "Running analysis..."
               python analyze.py --region "${{ github.event.inputs.region }}"
               ;;
             dryrun)
-              python dryrun_delete.py --region "${{ github.event.inputs.region }}" --snapshots "${{ github.event.inputs.snapshot_ids }}"
+              echo "Running dry-run deletion..."
+              python dryrun_delete.py --region "${{ github.event.inputs.region }}"
               ;;
             delete)
-              python delete.py --region "${{ github.event.inputs.region }}" --snapshots "${{ github.event.inputs.snapshot_ids }}"
+              echo "Running actual deletion..."
+              python delete.py --region "${{ github.event.inputs.region }}"
               ;;
             *)
-              echo "❌ Invalid operation: ${{ github.event.inputs.operation }}"
+              echo "❌ Invalid action selected: '${{ github.event.inputs.action }}'"
               exit 1
               ;;
           esac
