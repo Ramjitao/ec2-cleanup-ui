@@ -68,34 +68,36 @@ def save_to_file(data, filename):
         json.dump(data, f, indent=2)
 
 def generate_html_report(amis, snapshots, volumes, asg_amis):
-    # Build reverse maps
+    # Match snapshots to AMIs via Description
     ami_to_snapshots = defaultdict(list)
     for snap in snapshots:
         desc = snap.get("Description", "")
         if "ami-" in desc:
-            parts = desc.split()
-            ami_ids = [p for p in parts if p.startswith("ami-")]
-            for ami_id in ami_ids:
-                ami_to_snapshots[ami_id].append(snap["SnapshotId"])
+            for part in desc.split():
+                if part.startswith("ami-"):
+                    ami_to_snapshots[part].append(snap['SnapshotId'])
 
+    # Match volumes to AMIs via Tags
     ami_to_volumes = defaultdict(list)
     for vol in volumes:
         tags = {tag['Key']: tag['Value'] for tag in vol.get('Tags', [])}
         for val in tags.values():
             if val.startswith("ami-"):
-                ami_to_volumes[val].append(vol["VolumeId"])
+                ami_to_volumes[val].append(vol['VolumeId'])
 
+    # Build HTML table rows
     rows = ""
     for ami in amis:
-        ami_id = ami["ImageId"]
-        in_use = "Yes" if ami_id in asg_amis else "No"
-        snapshot_ids = ", ".join(ami_to_snapshots.get(ami_id, [])) or "N/A"
-        volume_ids = ", ".join(ami_to_volumes.get(ami_id, [])) or "N/A"
-        asg_names = ", ".join(asg_amis.get(ami_id, [])) or "N/A"
-        created = ami.get("CreationDate", "N/A")
+        ami_id = ami['ImageId']
+        created = ami.get('CreationDate', 'N/A')
+        snapshot_ids = ', '.join(ami_to_snapshots.get(ami_id, [])) or 'N/A'
+        volume_ids = ', '.join(ami_to_volumes.get(ami_id, [])) or 'N/A'
+        in_use = 'Yes' if ami_id in asg_amis else 'No'
+        asg_names = ', '.join(asg_amis.get(ami_id, [])) or 'N/A'
 
         rows += f"<tr><td>{ami_id}</td><td>{in_use}</td><td>{snapshot_ids}</td><td>{volume_ids}</td><td>{asg_names}</td><td>{created}</td></tr>\n"
 
+    # Build and save HTML
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -129,7 +131,7 @@ def generate_html_report(amis, snapshots, volumes, asg_amis):
 </html>
 """
     Path("output/output.html").write_text(html)
-    print("Saved output/output.html")
+    print("✅ Saved output/output.html")
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze AWS EC2 AMIs, Snapshots, Volumes, and ASG usage")
@@ -137,21 +139,21 @@ def main():
     args = parser.parse_args()
 
     region = args.region
-    print(f"Using AWS region: {region}")
+    print(f"📍 Using AWS region: {region}")
 
     ec2_client = boto3.client('ec2', region_name=region)
     asg_client = boto3.client('autoscaling', region_name=region)
 
-    print("Fetching AMIs...")
+    print("🔍 Fetching AMIs...")
     amis = get_all_amis(ec2_client, region)
 
-    print("Fetching Snapshots...")
+    print("🔍 Fetching Snapshots...")
     snapshots = get_all_snapshots(ec2_client, region)
 
-    print("Fetching Volumes...")
+    print("🔍 Fetching Volumes...")
     volumes = get_all_volumes(ec2_client, region)
 
-    print("Fetching ASG AMI usage...")
+    print("🔍 Fetching ASG AMI usage...")
     asg_amis = get_asg_ami_usage(asg_client, ec2_client)
 
     # Save raw data
@@ -160,47 +162,8 @@ def main():
     save_to_file(volumes, 'volumes.json')
     save_to_file(asg_amis, 'asg_ami_usage.json')
 
-    # Create a lookup of snapshot ID → snapshot
-    snapshot_map = {snap['SnapshotId']: snap for snap in snapshots}
-
-    # Create a lookup of volume ID → volume
-    volume_map = {vol['VolumeId']: vol for vol in volumes}
-
-    # Create output table
-    rows = []
-    for ami in amis:
-        ami_id = ami['ImageId']
-        created = ami.get('CreationDate', '-')
-        name = ami.get('Name', '')
-        asg_names = ', '.join(asg_amis.get(ami_id, [])) or '-'
-
-        # Try to find snapshot and volume info based on matching descriptions
-        matched_snapshots = [snap for snap in snapshots if ami_id in snap.get('Description', '')]
-        snapshot_ids = ', '.join([snap['SnapshotId'] for snap in matched_snapshots]) or '-'
-        volume_ids = ', '.join([snap.get('VolumeId', '-') for snap in matched_snapshots]) or '-'
-
-        rows.append({
-            'AMI ID': ami_id,
-            'In Use': 'Yes' if ami_id in asg_amis else 'No',
-            'Snapshot ID': snapshot_ids,
-            'Volume ID(s)': volume_ids,
-            'ASG Name': asg_names,
-            'Created Date': created
-        })
-
-    # Generate HTML report
-    os.makedirs('output', exist_ok=True)
-    with open('output/output.html', 'w') as f:
-        f.write("<html><head><title>EC2 Cleanup Report</title></head><body>")
-        f.write("<h2>AMI Cleanup Report</h2>")
-        f.write("<table border='1'><tr><th>AMI ID</th><th>In Use</th><th>Snapshot ID</th><th>Volume ID(s)</th><th>ASG Name</th><th>Created Date</th></tr>")
-        for row in rows:
-            f.write(f"<tr><td>{row['AMI ID']}</td><td>{row['In Use']}</td><td>{row['Snapshot ID']}</td><td>{row['Volume ID(s)']}</td><td>{row['ASG Name']}</td><td>{row['Created Date']}</td></tr>")
-        f.write("</table></body></html>")
-
-    print("Saved output/output.html")
-    print("Analyze complete.")
-
+    generate_html_report(amis, snapshots, volumes, asg_amis)
+    print("✅ Analyze complete.")
 
 if __name__ == "__main__":
     main()
