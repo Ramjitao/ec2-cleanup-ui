@@ -84,102 +84,120 @@ def get_ami_dependencies(region='eu-west-1'):
 
     return results
 
-
 def generate_html(results):
+    rows = ""
+    for r in results:
+        snapshot_ids = ", ".join(r['snapshots']) if r['snapshots'] else "-"
+        used_ec2 = "✅" if r['used_by_ec2'] else "❌"
+        used_asg = "✅" if r['used_by_asg'] else "❌"
+        safe_class = "yes" if r['safe_to_delete'] else "no"
+        safe_label = "✔️ Yes" if r['safe_to_delete'] else "❌ No"
+
+        rows += f"""
+        <tr>
+            <td>{r['ami_id']}</td>
+            <td>{r['name']}</td>
+            <td>{r['creation_date']}</td>
+            <td>{snapshot_ids}</td>
+            <td>{used_ec2}</td>
+            <td>{used_asg}</td>
+            <td class="{safe_class}">{safe_label}</td>
+        </tr>
+        """
+
     html = f"""
- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>🌄 AMI Dependency Dashboard</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; padding: 20px; color: #333; }}
-        table {{ border-collapse: collapse; width: 100%; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
-        th, td {{ border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }}
-        th {{ background-color: #f2f2f2; cursor: pointer; }}
-        tr:hover {{ background-color: #f5f5f5; }}
-        .yes {{ color: green; font-weight: bold; }}
-        .no {{ color: red; font-weight: bold; }}
-        .warn {{ color: orange; font-weight: bold; }}
-        .center {{ text-align: center; }}
-        .actions {{ margin: 10px 0; }}
-        input[type="text"] {{ width: 300px; padding: 6px; margin-right: 10px; }}
-    </style>
-</head>
-<body>
-    <h2>🌄 AMI Dependency Dashboard</h2>
-    <p><strong>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</strong></p>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>🌄 AMI Dependency Dashboard</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 20px; color: #333; }}
+            table {{ border-collapse: collapse; width: 100%; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+            th, td {{ border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }}
+            th {{ background-color: #f2f2f2; cursor: pointer; }}
+            tr:hover {{ background-color: #f5f5f5; }}
+            .yes {{ color: green; font-weight: bold; }}
+            .no {{ color: red; font-weight: bold; }}
+            .warn {{ color: orange; font-weight: bold; }}
+            .center {{ text-align: center; }}
+            .actions {{ margin: 10px 0; }}
+            input[type="text"] {{ width: 300px; padding: 6px; margin-right: 10px; }}
+        </style>
+    </head>
+    <body>
+        <h2>🌄 AMI Dependency Dashboard</h2>
+        <p><strong>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</strong></p>
 
-    <div class="actions">
-        <input type="text" id="searchInput" placeholder="🔎 Filter AMIs..." onkeyup="filterTable()" />
-        <button onclick="exportTableToCSV('ami_dependencies.csv')">📥 Export CSV</button>
-    </div>
+        <div class="actions">
+            <input type="text" id="searchInput" placeholder="🔎 Filter AMIs..." onkeyup="filterTable()" />
+            <button onclick="exportTableToCSV('ami_dependencies.csv')">📥 Export CSV</button>
+        </div>
 
-    <table id="amiTable" data-sort-dir="asc">
-        <thead>
-            <tr>
-                <th onclick="sortTable(0)">AMI ID</th>
-                <th onclick="sortTable(1)">Name</th>
-                <th onclick="sortTable(2)">Creation Date</th>
-                <th onclick="sortTable(3)">Snapshot IDs</th>
-                <th onclick="sortTable(4)">Used by EC2</th>
-                <th onclick="sortTable(5)">Used by ASG</th>
-                <th onclick="sortTable(6)">Safe to Delete</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- DYNAMIC ROWS TO BE INSERTED -->
-        </tbody>
-    </table>
+        <table id="amiTable" data-sort-dir="asc">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">AMI ID</th>
+                    <th onclick="sortTable(1)">Name</th>
+                    <th onclick="sortTable(2)">Creation Date</th>
+                    <th onclick="sortTable(3)">Snapshot IDs</th>
+                    <th onclick="sortTable(4)">Used by EC2</th>
+                    <th onclick="sortTable(5)">Used by ASG</th>
+                    <th onclick="sortTable(6)">Safe to Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows}
+            </tbody>
+        </table>
 
-    <script>
-    function sortTable(n) {{
-        var table = document.getElementById("amiTable");
-        var rows = Array.from(table.rows).slice(1);
-        var asc = table.getAttribute("data-sort-dir") !== "asc";
-        rows.sort((a, b) => {{
-            let x = a.cells[n].innerText;
-            let y = b.cells[n].innerText;
-            return asc ? x.localeCompare(y, undefined, {{numeric: true}}) : y.localeCompare(x, undefined, {{numeric: true}});
-        }});
-        rows.forEach(row => table.appendChild(row));
-        table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
-    }}
-
-    function filterTable() {{
-        const filter = document.getElementById("searchInput").value.toUpperCase();
-        const rows = document.getElementById("amiTable").rows;
-        for (let i = 1; i < rows.length; i++) {{
-            rows[i].style.display = Array.from(rows[i].cells).some(
-                function(td) {{ return td.innerText.toUpperCase().includes(filter); }}
-            ) ? "" : "none";
+        <script>
+        function sortTable(n) {{
+            var table = document.getElementById("amiTable");
+            var rows = Array.from(table.rows).slice(1);
+            var asc = table.getAttribute("data-sort-dir") !== "asc";
+            rows.sort((a, b) => {{
+                let x = a.cells[n].innerText;
+                let y = b.cells[n].innerText;
+                return asc ? x.localeCompare(y, undefined, {{numeric: true}}) : y.localeCompare(x, undefined, {{numeric: true}});
+            }});
+            rows.forEach(row => table.appendChild(row));
+            table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
         }}
-    }}
 
-    function exportTableToCSV(filename) {{
-        const rows = document.querySelectorAll("table tr");
-        const csv = Array.from(rows).map(function(row) {{
-            return Array.from(row.cells).map(function(c) {{
-                return '"' + c.innerText + '"';
-            }}).join(",");
-        }}).join("\\n");
+        function filterTable() {{
+            const filter = document.getElementById("searchInput").value.toUpperCase();
+            const rows = document.getElementById("amiTable").rows;
+            for (let i = 1; i < rows.length; i++) {{
+                rows[i].style.display = Array.from(rows[i].cells).some(
+                    function(td) {{ return td.innerText.toUpperCase().includes(filter); }}
+                ) ? "" : "none";
+            }}
+        }}
 
-        const blob = new Blob([csv], {{ type: "text/csv" }});
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        a.click();
-    }}
-    </script>
-</body>
-</html>
-"""
+        function exportTableToCSV(filename) {{
+            const rows = document.querySelectorAll("table tr");
+            const csv = Array.from(rows).map(function(row) {{
+                return Array.from(row.cells).map(function(c) {{
+                    return '"' + c.innerText + '"';
+                }}).join(",");
+            }}).join("\\n");
 
-    html += "</table></body></html>"
+            const blob = new Blob([csv], {{ type: "text/csv" }});
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+        }}
+        </script>
+    </body>
+    </html>
+    """
 
     Path("output").mkdir(parents=True, exist_ok=True)
     Path("output/results.html").write_text(html)
     print("✅ Saved: output/results.html")
+
 
 # --------- MAIN ------------------
 if __name__ == "__main__":
