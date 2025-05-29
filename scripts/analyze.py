@@ -1,6 +1,7 @@
 import boto3
 from pathlib import Path
 from datetime import datetime
+from collections import defaultdict
 
 def get_ami_dependencies(region='eu-west-1'):
     ec2 = boto3.client('ec2', region_name=region)
@@ -43,16 +44,28 @@ def get_ami_dependencies(region='eu-west-1'):
             except Exception:
                 continue
 
+    print("🔍 Fetching EBS volumes...")
+    volumes_by_snapshot = defaultdict(list)
+    paginator = ec2.get_paginator('describe_volumes')
+    for page in paginator.paginate():
+        for volume in page['Volumes']:
+            if volume['State'] == 'available' and 'SnapshotId' in volume:
+                volumes_by_snapshot[volume['SnapshotId']].append(volume)
+
     print("✅ Analysis complete.")
     results = []
 
     for ami in amis:
         ami_id = ami['ImageId']
         snapshot_ids = []
+        volume_count = 0
+
         for mapping in ami.get('BlockDeviceMappings', []):
             ebs = mapping.get('Ebs')
             if ebs and ebs.get('SnapshotId'):
-                snapshot_ids.append(ebs['SnapshotId'])
+                snapshot_id = ebs['SnapshotId']
+                snapshot_ids.append(snapshot_id)
+                volume_count += len(volumes_by_snapshot.get(snapshot_id, []))
 
         used_by_ec2 = ami_id in ec2_images_in_use
         used_by_asg = ami_id in asg_images_in_use
@@ -63,6 +76,7 @@ def get_ami_dependencies(region='eu-west-1'):
             'name': ami.get('Name', ''),
             'creation_date': ami.get('CreationDate', ''),
             'snapshots': snapshot_ids,
+            'volume_count': volume_count,
             'used_by_ec2': used_by_ec2,
             'used_by_asg': used_by_asg,
             'safe_to_delete': safe_to_delete
@@ -70,27 +84,58 @@ def get_ami_dependencies(region='eu-west-1'):
 
     return results
 
+
 def generate_html(results):
     html = f"""<html>
 <head>
     <title>AMI Dependency Dashboard</title>
     <style>
-        body {{ font-family: Arial; padding: 20px; }}
-        table {{ border-collapse: collapse; width: 100%; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #f2f2f2; }}
-        .yes {{ color: green; }}
-        .no {{ color: red; }}
+        body {{
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            padding: 20px;
+        }}
+        h2 {{
+            text-align: center;
+            color: #333;
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }}
+        th, td {{
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }}
+        th {{
+            background-color: #f2f2f2;
+        }}
+        tr:hover {{
+            background-color: #f5f5f5;
+        }}
+        .yes {{
+            color: green;
+            font-weight: bold;
+        }}
+        .no {{
+            color: red;
+            font-weight: bold;
+        }}
     </style>
 </head>
 <body>
-    <h2>📸 AMI Dependency Dashboard - {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</h2>
+    <h2>📸 AMI Dependency Dashboard<br><small>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</small></h2>
     <table>
         <tr>
             <th>AMI ID</th>
             <th>Name</th>
             <th>Creation Date</th>
             <th>Snapshot IDs</th>
+            <th>EBS Volume Count</th>
             <th>Used by EC2</th>
             <th>Used by ASG</th>
             <th>Safe to Delete</th>
@@ -100,16 +145,18 @@ def generate_html(results):
     for entry in results:
         html += f"""<tr>
             <td>{entry['ami_id']}</td>
-            <td>{entry['name']}</td>
-            <td>{entry['creation_date']}</td>
-            <td>{"<br>".join(entry['snapshots'])}</td>
-            <td class="{ 'yes' if entry['used_by_ec2'] else 'no' }">{ '✅' if entry['used_by_ec2'] else '❌' }</td>
-            <td class="{ 'yes' if entry['used_by_asg'] else 'no' }">{ '✅' if entry['used_by_asg'] else '❌' }</td>
-            <td class="{ 'yes' if entry['safe_to_delete'] else 'no' }">{ '🧹 Yes' if entry['safe_to_delete'] else '❗ No' }</td>
+            <td>{entry.get('name', 'N/A')}</td>
+            <td>{entry.get('creation_date', 'N/A')}</td>
+            <td>{"<br>".join(entry.get('snapshots', [])) or '—'}</td>
+            <td>{entry.get('volume_count', 0)}</td>
+            <td class="{ 'yes' if entry.get('used_by_ec2') else 'no' }">{ '✅' if entry.get('used_by_ec2') else '❌' }</td>
+            <td class="{ 'yes' if entry.get('used_by_asg') else 'no' }">{ '✅' if entry.get('used_by_asg') else '❌' }</td>
+            <td class="{ 'yes' if entry.get('safe_to_delete') else 'no' }">{ '🧹 Yes' if entry.get('safe_to_delete') else '❗ No' }</td>
         </tr>
 """
 
     html += "</table></body></html>"
+
     Path("output").mkdir(parents=True, exist_ok=True)
     Path("output/results.html").write_text(html)
     print("✅ Saved: output/results.html")
