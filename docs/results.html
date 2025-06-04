@@ -4,298 +4,49 @@
 🔍 Fetching EBS volumes...
 ✅ Analysis complete.
 ✅ Saved: output/results.html
-y { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-            table { border-collapse: collapse; width: 100%; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-            th, td { border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }
-            th { background-color: #f2f2f2; cursor: pointer; }
-            tr:hover { background-color: #f5f5f5; }
-            .yes { color: green; font-weight: bold; }
-            .no { color: red; font-weight: bold; }
-            .warn { color: orange; font-weight: bold; }
-            .center { text-align: center; }
-            .actions { margin: 10px 0; }
-            input[type="text"] { width: 300px; padding: 6px; margin-right: 10px; }
-        </style>
+ Arial, sans-serif; padding: 20px; color: #333; }
+        table { border-collapse: collapse; width: 100%; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }
+        th { background-color: #f2f2f2; cursor: pointer; }
+        tr:hover { background-color: #f5f5f5; }
+        .yes { color: green; font-weight: bold; }
+        .no { color: red; font-weight: bold; }
+        .warn { color: orange; font-weight: bold; }
+        .volumes-list { margin: 0; padding-left: 20px; list-style-type: disc; }
+        .actions { margin: 10px 0; }
+        input[type="text"] { width: 300px; padding: 6px; margin-right: 10px; }
+    </style>
     </head>
     <body>
-        <h2>🌄 AMI Dependency Dashboard</h2>
-        <p><strong>2025-06-04 07:04:26 UTC</strong></p>
+    <h2>🌄 AMI Dependency Dashboard</h2>
+    <p><strong>2025-06-04 07:22:07 UTC</strong></p>
+    <p>Total AMIs: <strong>59</strong> | Safe to delete: <strong>29</strong></p>
 
-        <div class="actions">
-            <input type="text" id="searchInput" placeholder="🔎 Filter AMIs..." onkeyup="filterTable()" />
-            <button onclick="exportTableToCSV('ami_dependencies.csv')">📥 Export CSV</button>
-        </div>
+    <div class="actions">
+        <input type="text" id="searchInput" placeholder="🔎 Filter AMIs..." onkeyup="filterTable()" />
+        <button onclick="exportTableToCSV('ami_dependencies.csv')">📥 Export CSV</button>
+    </div>
 
-        <table id="amiTable" data-sort-dir="asc">
-            <thead>
-                <tr>
-                    <th onclick="sortTable(0)">AMI ID</th>
-                    <th onclick="sortTable(1)">Name</th>
-                    <th onclick="sortTable(2)">Creation Date</th>
-                    <th onclick="sortTable(3)">Snapshots & Volumes</th>
-                    <th onclick="sortTable(4)">Used by EC2</th>
-                    <th onclick="sortTable(5)">Used by ASG</th>
-                    <th onclick="sortTable(6)">Safe to Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-                
+    <table id="amiTable" data-sort-dir="asc">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">AMI ID</th>
+                <th onclick="sortTable(1)">Name</th>
+                <th onclick="sortTable(2)">Creation Date</th>
+                <th onclick="sortTable(3)">Snapshots & Volumes</th>
+                <th onclick="sortTable(4)">Used by EC2</th>
+                <th onclick="sortTable(5)">Used by ASG</th>
+                <th onclick="sortTable(6)">Safe to Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            
         <tr>
-            <td>ami-0fb5d2f8b0d090cb3</td>
-            <td>cn-admin-bastion-20250504-022003</td>
-            <td>2025-05-04T00:20:04.000Z</td>
-            <td><strong>snap-06614da9c273ac238</strong><br/>Volumes: -<br/><br/></td>
+            <td>ami-029544d95a1be6fe0</td>
+            <td>cn-vogue-myvogue-20250602-140401</td>
+            <td>2025-06-02T12:04:02.000Z</td>
+            <td><strong>snap-087dcdfdf7a264680</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0c4b799257a7309d5</td>
-            <td>cn-vogue-website-20250523-153902</td>
-            <td>2025-05-23T13:39:03.000Z</td>
-            <td><strong>snap-0148cac85c70c1e70</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-05ba61fa28da350ff</td>
-            <td>cn-front-varnish-20241219-124627</td>
-            <td>2024-12-19T11:46:28.000Z</td>
-            <td><strong>snap-0c0c7a26bd97a8019</strong><br/>Volumes: vol-007e8fe3f0306fe46, vol-050cd4d690e83422d, vol-00ab0f65d26c7c397, vol-0b3e7d1bea4826346<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-05b0503e40d659a98</td>
-            <td>cn-vogue-myvogue-20250521-142145</td>
-            <td>2025-05-21T12:21:46.000Z</td>
-            <td><strong>snap-0d61d8d7bab8733f0</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>❌</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-067d540bfef4a0ba3</td>
-            <td>sp-apps-gb-</td>
-            <td>2021-10-08T13:43:53.000Z</td>
-            <td><strong>snap-01ff815bab2bc392e</strong><br/>Volumes: -<br/><br/><strong>snap-031086fb320e9a543</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-25bbe556</td>
-            <td>cn-cnlive2015-videouploaderapi-20161129-164359</td>
-            <td>2016-11-29T15:44:00.000Z</td>
-            <td><strong>snap-e6eab180</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-071d19df5282e250c</td>
-            <td>cn-lci-2018-frontend-20241016-095758</td>
-            <td>2024-10-16T07:57:59.000Z</td>
-            <td><strong>snap-0b3504034808e9c4a</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0ce5d08a1471df2c4</td>
-            <td>cn-admin-bastion-20250518-022003</td>
-            <td>2025-05-18T00:20:04.000Z</td>
-            <td><strong>snap-0010e1bfbd1f462ab</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-06f4309b76751a57c</td>
-            <td>cn-vogue-myvogue-20250528-121506</td>
-            <td>2025-05-28T10:15:06.000Z</td>
-            <td><strong>snap-0861cd1391efd886e</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-07270d1ffda3805ab</td>
-            <td>cn-admin-bastion-20250420-022003</td>
-            <td>2025-04-20T00:20:04.000Z</td>
-            <td><strong>snap-04a5af4a3a43792d7</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-026fd64de8cf87c53</td>
-            <td>cn-admin-bastion-20250418-022003</td>
-            <td>2025-04-18T00:20:04.000Z</td>
-            <td><strong>snap-0159522e7584970b4</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-5cf6df2f</td>
-            <td>cn-legacy-abbonatiqui-20170108-033006</td>
-            <td>2017-01-08T03:30:11.000Z</td>
-            <td><strong>snap-0f5be3d258b67c69a</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-7b436b08</td>
-            <td>sp-vanityfair-varnishprod-20170109-165025</td>
-            <td>2017-01-09T15:50:26.000Z</td>
-            <td><strong>snap-0f7f24f148726317b</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-03d263fb35fc13f94</td>
-            <td>cn-admin-bastion-20250511-022003</td>
-            <td>2025-05-11T00:20:04.000Z</td>
-            <td><strong>snap-0f6f498ba2334678d</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0a21cb5d4a6a3296d</td>
-            <td>cn-vogue-website-20250523-145207</td>
-            <td>2025-05-23T12:52:08.000Z</td>
-            <td><strong>snap-059662ce568331cfe</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0f69c9888036c7312</td>
-            <td>cn-vogue-sfilate-nginx-php-fpm-20210118-144828</td>
-            <td>2021-01-18T13:48:29.000Z</td>
-            <td><strong>snap-0a054c9dac54eed11</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0ffb6194866875c06</td>
-            <td>cn-dbmarketing-exp-20180926-174700</td>
-            <td>2018-09-26T15:47:20.000Z</td>
-            <td><strong>snap-045d2ef0bb2492bae</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0bf4a35f5f61efde2</td>
-            <td>cn-iis-production-archiveio-finalsnapshot</td>
-            <td>2025-04-16T06:59:18.000Z</td>
-            <td><strong>snap-0eb4951500fc88c88</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0fdb842f1fa4ff24f</td>
-            <td>cn-native-website-20230414-140301</td>
-            <td>2023-04-14T12:03:02.000Z</td>
-            <td><strong>snap-0e9227ee53ee5339d</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0062b9616a7f1e599</td>
-            <td>cn-admin-bastion-20250509-022003</td>
-            <td>2025-05-09T00:20:04.000Z</td>
-            <td><strong>snap-089765cfbe1b00033</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0dd032f12b23cfa83</td>
-            <td>cn-marketing-dbm-20191211-000000</td>
-            <td>2019-12-11T14:24:23.000Z</td>
-            <td><strong>snap-06c2d4fcee0b63a6d</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0a91304e1a08c10d3</td>
-            <td>cn-vogue-website-20250509-092754</td>
-            <td>2025-05-09T07:27:55.000Z</td>
-            <td><strong>snap-047792f42230517e9</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-c0c1e8a6</td>
-            <td>jmeter-slave-base-1488530704</td>
-            <td>2017-03-03T08:53:36.000Z</td>
-            <td><strong>snap-03c05e7b7ad188ce4</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>❌</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-02f1987d2c1d2595d</td>
-            <td>cn-vanityfair-2017-website-20250423-143907</td>
-            <td>2025-04-23T12:39:08.000Z</td>
-            <td><strong>snap-0e4911ded519cf6e6</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0b15bcb31fb472c1a</td>
-            <td>cn-vogue-website-20250523-170428</td>
-            <td>2025-05-23T15:04:29.000Z</td>
-            <td><strong>snap-0a93cc11f9f9f4607</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0c2e01cbaf5f631be</td>
-            <td>cn-gq-website-20241113-081854</td>
-            <td>2024-11-13T07:18:55.000Z</td>
-            <td><strong>snap-0747c50cbb9494547</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
             <td>✅</td>
             <td class="no">❌ No</td>
         </tr>
@@ -304,197 +55,7 @@ y { font-family: Arial, sans-serif; padding: 20px; color: #333; }
             <td>ami-0f47ddb0ce864a27c</td>
             <td>cn-admin-bastion-20250601-022004</td>
             <td>2025-06-01T00:20:05.000Z</td>
-            <td><strong>snap-0eb519df8f908a9f0</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0367e0e581317450e</td>
-            <td>cn-vogue-myvogue-20250528-130357</td>
-            <td>2025-05-28T11:03:58.000Z</td>
-            <td><strong>snap-0f371acebc5da47e1</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0e18bbe3084976388</td>
-            <td>archiveio_windows2019</td>
-            <td>2024-04-16T10:59:39.000Z</td>
-            <td><strong>snap-0e4b41ce9ea4fc6dd</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>❌</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-029544d95a1be6fe0</td>
-            <td>cn-vogue-myvogue-20250602-140401</td>
-            <td>2025-06-02T12:04:02.000Z</td>
-            <td><strong>snap-087dcdfdf7a264680</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-045eb1259a42becea</td>
-            <td>cn-commons-polls-nginx-php-fpm-20230428-145529</td>
-            <td>2023-04-28T12:55:29.000Z</td>
-            <td><strong>snap-08351187fdb5832e6</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-ebf6df98</td>
-            <td>sp-commons-debianwheezy-20170108-030007</td>
-            <td>2017-01-08T03:00:27.000Z</td>
-            <td><strong>snap-0908ee25573fb92ca</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-029650b163a2fad25</td>
-            <td>cn-commons-polls-key-rotations</td>
-            <td>2021-11-17T16:47:41.000Z</td>
-            <td><strong>snap-072dbef9ba5266cfa</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-003496fce1cb29bc8</td>
-            <td>cn-front-02-varnish-20241219-075458</td>
-            <td>2024-12-19T06:54:59.000Z</td>
-            <td><strong>snap-0aaec1af9b39a7aa9</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0fc1a7011b338caee</td>
-            <td>cn-stage-php-20220530-104512</td>
-            <td>2022-05-30T08:45:12.000Z</td>
-            <td><strong>snap-03b93112052f3ad10</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>❌</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-084957012b577040c</td>
-            <td>cn-wired2016-website-20241113-075432</td>
-            <td>2024-11-13T06:54:33.000Z</td>
-            <td><strong>snap-0e39c95b80efc518b</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-003450b6ee379821d</td>
-            <td>cn-vogue-talents-image-encoder-prod-finalsnapshot</td>
-            <td>2025-04-22T09:53:07.000Z</td>
-            <td><strong>snap-028e37c45159ff3fb</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-043fca69ca147b380</td>
-            <td>cn-vogue-myvogue-20250128-100143</td>
-            <td>2025-01-28T09:01:44.000Z</td>
-            <td><strong>snap-041ae6d4b7b019460</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>❌</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-04e067fa961b0d32d</td>
-            <td>cn-admin-bastion-20250502-022004</td>
-            <td>2025-05-02T00:20:05.000Z</td>
-            <td><strong>snap-0aa7edfc5c453bbdc</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-057d1e7fb6434ca52</td>
-            <td>cn-stage-varnish-20190326-165800</td>
-            <td>2019-03-26T15:58:28.000Z</td>
-            <td><strong>snap-0b6f3d9d9d3b005c7</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-05b49ffe1260a609e</td>
-            <td>cn-vogue-website-20241212-105007</td>
-            <td>2024-12-12T09:50:07.000Z</td>
-            <td><strong>snap-0b58fc17c542b92bf</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0c9a30f0a5f2a7844</td>
-            <td>cn-etl-ec2-old-finalsnapshotfordeletion</td>
-            <td>2025-04-22T09:31:19.000Z</td>
-            <td><strong>snap-02ddb0bc68dcc4d45</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0cb7c29bed51f07a7</td>
-            <td>cn-admin-bastion-20250516-022003</td>
-            <td>2025-05-16T00:20:04.000Z</td>
-            <td><strong>snap-03ead6c2a6a3c37fc</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-06b9e7500fe0c46ab</td>
-            <td>cn-front-02-varnish-20240501-111718</td>
-            <td>2024-05-01T09:17:19.000Z</td>
-            <td><strong>snap-08c4f050232a39542</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>❌</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0f3f02faaefc17439</td>
-            <td>cn-cnlive2015-website-20201021-170514</td>
-            <td>2020-10-21T15:05:14.000Z</td>
-            <td><strong>snap-00ad0624edc1b0735</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0a69e4d60768baee0</td>
-            <td>cn-vanityfair-2017-website-20250423-143458</td>
-            <td>2025-04-23T12:34:59.000Z</td>
-            <td><strong>snap-00ae0967d757af6c9</strong><br/>Volumes: -<br/><br/></td>
+            <td><strong>snap-0eb519df8f908a9f0</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
             <td>❌</td>
             <td class="yes">✔️ Yes</td>
@@ -504,37 +65,17 @@ y { font-family: Arial, sans-serif; padding: 20px; color: #333; }
             <td>ami-0557b18204c20a386</td>
             <td>cn-admin-bastion-20250530-022004</td>
             <td>2025-05-30T00:20:05.000Z</td>
-            <td><strong>snap-0566218e8ebf80435</strong><br/>Volumes: -<br/><br/></td>
+            <td><strong>snap-0566218e8ebf80435</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
             <td>❌</td>
             <td class="yes">✔️ Yes</td>
         </tr>
         
         <tr>
-            <td>ami-09a7bedea6ebc7f2f</td>
-            <td>lci-memcached</td>
-            <td>2019-02-18T11:41:25.000Z</td>
-            <td><strong>snap-04e07d34199b6f60e</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0c15a85fc68997735</td>
-            <td>chatgpt</td>
-            <td>2023-04-18T15:06:34.000Z</td>
-            <td><strong>snap-0787ce2648ea1cc11</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>❌</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-01171763f5f624478</td>
-            <td>cn-vogue-myvogue-20250528-113733</td>
-            <td>2025-05-28T09:37:34.000Z</td>
-            <td><strong>snap-0cda0137d73f0c69b</strong><br/>Volumes: -<br/><br/></td>
+            <td>ami-0367e0e581317450e</td>
+            <td>cn-vogue-myvogue-20250528-130357</td>
+            <td>2025-05-28T11:03:58.000Z</td>
+            <td><strong>snap-0f371acebc5da47e1</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
             <td>❌</td>
             <td class="yes">✔️ Yes</td>
@@ -544,67 +85,27 @@ y { font-family: Arial, sans-serif; padding: 20px; color: #333; }
             <td>ami-0535f166562d36adc</td>
             <td>cn-vogue-myvogue-20250528-124506</td>
             <td>2025-05-28T10:45:07.000Z</td>
-            <td><strong>snap-0c37e7e4e017c1b58</strong><br/>Volumes: -<br/><br/></td>
+            <td><strong>snap-0c37e7e4e017c1b58</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
             <td>❌</td>
             <td class="yes">✔️ Yes</td>
         </tr>
         
         <tr>
-            <td>ami-0cdac884ba09744e9</td>
-            <td>cn-vanityfair-2017-admin-20241217-073136</td>
-            <td>2024-12-17T06:31:37.000Z</td>
-            <td><strong>snap-0c1528c0c543c0897</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-1b8e2c62</td>
-            <td>sp-commons-sambafs-20171106-101700</td>
-            <td>2017-11-06T09:17:11.000Z</td>
-            <td><strong>snap-064cabd40f662ac43</strong><br/>Volumes: -<br/><br/><strong>snap-0ad039efe42aed5f8</strong><br/>Volumes: -<br/><br/><strong>snap-04d5114b7d909f981</strong><br/>Volumes: -<br/><br/><strong>snap-01a70c2007152e9ef</strong><br/>Volumes: -<br/><br/></td>
-            <td>✅</td>
-            <td>❌</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-7f6d3519</td>
-            <td>style.blog</td>
-            <td>2017-01-31T10:06:08.000Z</td>
-            <td><strong>snap-77f7b711</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>✅</td>
-            <td class="no">❌ No</td>
-        </tr>
-        
-        <tr>
-            <td>ami-01ef37b2d8673fab9</td>
-            <td>cn-admin-bastion-20250425-022003</td>
-            <td>2025-04-25T00:20:04.000Z</td>
-            <td><strong>snap-0e2cca88e4752634a</strong><br/>Volumes: -<br/><br/></td>
+            <td>ami-06f4309b76751a57c</td>
+            <td>cn-vogue-myvogue-20250528-121506</td>
+            <td>2025-05-28T10:15:06.000Z</td>
+            <td><strong>snap-0861cd1391efd886e</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
             <td>❌</td>
             <td class="yes">✔️ Yes</td>
         </tr>
         
         <tr>
-            <td>ami-0d0bc3ccea9e1f5e7</td>
-            <td>cn-admin-bastion-20250427-022003</td>
-            <td>2025-04-27T00:20:04.000Z</td>
-            <td><strong>snap-09286925c9d340fc8</strong><br/>Volumes: -<br/><br/></td>
-            <td>❌</td>
-            <td>❌</td>
-            <td class="yes">✔️ Yes</td>
-        </tr>
-        
-        <tr>
-            <td>ami-0d20e3b13d46edb9b</td>
-            <td>cn-admin-bastion-20250523-022003</td>
-            <td>2025-05-23T00:20:04.000Z</td>
-            <td><strong>snap-010ce9f364180a11d</strong><br/>Volumes: -<br/><br/></td>
+            <td>ami-01171763f5f624478</td>
+            <td>cn-vogue-myvogue-20250528-113733</td>
+            <td>2025-05-28T09:37:34.000Z</td>
+            <td><strong>snap-0cda0137d73f0c69b</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
             <td>❌</td>
             <td class="yes">✔️ Yes</td>
@@ -614,64 +115,564 @@ y { font-family: Arial, sans-serif; padding: 20px; color: #333; }
             <td>ami-0f430c7d21d321f59</td>
             <td>cn-admin-bastion-20250525-022003</td>
             <td>2025-05-25T00:20:04.000Z</td>
-            <td><strong>snap-040bc8d3138672537</strong><br/>Volumes: -<br/><br/></td>
+            <td><strong>snap-040bc8d3138672537</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
             <td>❌</td>
             <td class="yes">✔️ Yes</td>
         </tr>
         
         <tr>
-            <td>ami-0269552ee15cec5f6</td>
-            <td>openvpn-ami-image-latest</td>
-            <td>2019-09-30T15:47:12.000Z</td>
-            <td><strong>snap-0469111a129fa59f2</strong><br/>Volumes: -<br/><br/></td>
+            <td>ami-0b15bcb31fb472c1a</td>
+            <td>cn-vogue-website-20250523-170428</td>
+            <td>2025-05-23T15:04:29.000Z</td>
+            <td><strong>snap-0a93cc11f9f9f4607</strong><br/><ul class='volumes-list'><li>vol-0f68408a7e13e7834 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0c4b799257a7309d5</td>
+            <td>cn-vogue-website-20250523-153902</td>
+            <td>2025-05-23T13:39:03.000Z</td>
+            <td><strong>snap-0148cac85c70c1e70</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0a21cb5d4a6a3296d</td>
+            <td>cn-vogue-website-20250523-145207</td>
+            <td>2025-05-23T12:52:08.000Z</td>
+            <td><strong>snap-059662ce568331cfe</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0d20e3b13d46edb9b</td>
+            <td>cn-admin-bastion-20250523-022003</td>
+            <td>2025-05-23T00:20:04.000Z</td>
+            <td><strong>snap-010ce9f364180a11d</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-05b0503e40d659a98</td>
+            <td>cn-vogue-myvogue-20250521-142145</td>
+            <td>2025-05-21T12:21:46.000Z</td>
+            <td><strong>snap-0d61d8d7bab8733f0</strong><br/><ul class='volumes-list'><li>vol-0753b4650010cc08c (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0ce5d08a1471df2c4</td>
+            <td>cn-admin-bastion-20250518-022003</td>
+            <td>2025-05-18T00:20:04.000Z</td>
+            <td><strong>snap-0010e1bfbd1f462ab</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0cb7c29bed51f07a7</td>
+            <td>cn-admin-bastion-20250516-022003</td>
+            <td>2025-05-16T00:20:04.000Z</td>
+            <td><strong>snap-03ead6c2a6a3c37fc</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-03d263fb35fc13f94</td>
+            <td>cn-admin-bastion-20250511-022003</td>
+            <td>2025-05-11T00:20:04.000Z</td>
+            <td><strong>snap-0f6f498ba2334678d</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0a91304e1a08c10d3</td>
+            <td>cn-vogue-website-20250509-092754</td>
+            <td>2025-05-09T07:27:55.000Z</td>
+            <td><strong>snap-047792f42230517e9</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0062b9616a7f1e599</td>
+            <td>cn-admin-bastion-20250509-022003</td>
+            <td>2025-05-09T00:20:04.000Z</td>
+            <td><strong>snap-089765cfbe1b00033</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0fb5d2f8b0d090cb3</td>
+            <td>cn-admin-bastion-20250504-022003</td>
+            <td>2025-05-04T00:20:04.000Z</td>
+            <td><strong>snap-06614da9c273ac238</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-04e067fa961b0d32d</td>
+            <td>cn-admin-bastion-20250502-022004</td>
+            <td>2025-05-02T00:20:05.000Z</td>
+            <td><strong>snap-0aa7edfc5c453bbdc</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0d0bc3ccea9e1f5e7</td>
+            <td>cn-admin-bastion-20250427-022003</td>
+            <td>2025-04-27T00:20:04.000Z</td>
+            <td><strong>snap-09286925c9d340fc8</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-01ef37b2d8673fab9</td>
+            <td>cn-admin-bastion-20250425-022003</td>
+            <td>2025-04-25T00:20:04.000Z</td>
+            <td><strong>snap-0e2cca88e4752634a</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-02f1987d2c1d2595d</td>
+            <td>cn-vanityfair-2017-website-20250423-143907</td>
+            <td>2025-04-23T12:39:08.000Z</td>
+            <td><strong>snap-0e4911ded519cf6e6</strong><br/>Volumes: -<br/> </td>
             <td>❌</td>
             <td>✅</td>
             <td class="no">❌ No</td>
         </tr>
         
-            </tbody>
-        </table>
+        <tr>
+            <td>ami-0a69e4d60768baee0</td>
+            <td>cn-vanityfair-2017-website-20250423-143458</td>
+            <td>2025-04-23T12:34:59.000Z</td>
+            <td><strong>snap-00ae0967d757af6c9</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-003450b6ee379821d</td>
+            <td>cn-vogue-talents-image-encoder-prod-finalsnapshot</td>
+            <td>2025-04-22T09:53:07.000Z</td>
+            <td><strong>snap-028e37c45159ff3fb</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0c9a30f0a5f2a7844</td>
+            <td>cn-etl-ec2-old-finalsnapshotfordeletion</td>
+            <td>2025-04-22T09:31:19.000Z</td>
+            <td><strong>snap-02ddb0bc68dcc4d45</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-07270d1ffda3805ab</td>
+            <td>cn-admin-bastion-20250420-022003</td>
+            <td>2025-04-20T00:20:04.000Z</td>
+            <td><strong>snap-04a5af4a3a43792d7</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-026fd64de8cf87c53</td>
+            <td>cn-admin-bastion-20250418-022003</td>
+            <td>2025-04-18T00:20:04.000Z</td>
+            <td><strong>snap-0159522e7584970b4</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0bf4a35f5f61efde2</td>
+            <td>cn-iis-production-archiveio-finalsnapshot</td>
+            <td>2025-04-16T06:59:18.000Z</td>
+            <td><strong>snap-0eb4951500fc88c88</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-043fca69ca147b380</td>
+            <td>cn-vogue-myvogue-20250128-100143</td>
+            <td>2025-01-28T09:01:44.000Z</td>
+            <td><strong>snap-041ae6d4b7b019460</strong><br/><ul class='volumes-list'><li>vol-0385a6dd47b2ae272 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-05ba61fa28da350ff</td>
+            <td>cn-front-varnish-20241219-124627</td>
+            <td>2024-12-19T11:46:28.000Z</td>
+            <td><strong>snap-0c0c7a26bd97a8019</strong><br/><ul class='volumes-list'><li>vol-007e8fe3f0306fe46 (available)</li><li>vol-050cd4d690e83422d (available)</li><li>vol-093899f42f35c02c0 (in-use)</li><li>vol-00ab0f65d26c7c397 (available)</li><li>vol-0b3e7d1bea4826346 (available)</li><li>vol-094ca9ad78ca53ab7 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-003496fce1cb29bc8</td>
+            <td>cn-front-02-varnish-20241219-075458</td>
+            <td>2024-12-19T06:54:59.000Z</td>
+            <td><strong>snap-0aaec1af9b39a7aa9</strong><br/><ul class='volumes-list'><li>vol-00bf197164d2ae0e3 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0cdac884ba09744e9</td>
+            <td>cn-vanityfair-2017-admin-20241217-073136</td>
+            <td>2024-12-17T06:31:37.000Z</td>
+            <td><strong>snap-0c1528c0c543c0897</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-05b49ffe1260a609e</td>
+            <td>cn-vogue-website-20241212-105007</td>
+            <td>2024-12-12T09:50:07.000Z</td>
+            <td><strong>snap-0b58fc17c542b92bf</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0c2e01cbaf5f631be</td>
+            <td>cn-gq-website-20241113-081854</td>
+            <td>2024-11-13T07:18:55.000Z</td>
+            <td><strong>snap-0747c50cbb9494547</strong><br/><ul class='volumes-list'><li>vol-0c93adb19e2288b37 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-084957012b577040c</td>
+            <td>cn-wired2016-website-20241113-075432</td>
+            <td>2024-11-13T06:54:33.000Z</td>
+            <td><strong>snap-0e39c95b80efc518b</strong><br/><ul class='volumes-list'><li>vol-0fba91cca75071a0d (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-071d19df5282e250c</td>
+            <td>cn-lci-2018-frontend-20241016-095758</td>
+            <td>2024-10-16T07:57:59.000Z</td>
+            <td><strong>snap-0b3504034808e9c4a</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-06b9e7500fe0c46ab</td>
+            <td>cn-front-02-varnish-20240501-111718</td>
+            <td>2024-05-01T09:17:19.000Z</td>
+            <td><strong>snap-08c4f050232a39542</strong><br/><ul class='volumes-list'><li>vol-0a837b6a2a01c20b0 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0e18bbe3084976388</td>
+            <td>archiveio_windows2019</td>
+            <td>2024-04-16T10:59:39.000Z</td>
+            <td><strong>snap-0e4b41ce9ea4fc6dd</strong><br/><ul class='volumes-list'><li>vol-08f071b1621adb4d4 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-045eb1259a42becea</td>
+            <td>cn-commons-polls-nginx-php-fpm-20230428-145529</td>
+            <td>2023-04-28T12:55:29.000Z</td>
+            <td><strong>snap-08351187fdb5832e6</strong><br/><ul class='volumes-list'><li>vol-066cb2ac8d8cc51a3 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0c15a85fc68997735</td>
+            <td>chatgpt</td>
+            <td>2023-04-18T15:06:34.000Z</td>
+            <td><strong>snap-0787ce2648ea1cc11</strong><br/><ul class='volumes-list'><li>vol-0ad14ef18571a03bb (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0fdb842f1fa4ff24f</td>
+            <td>cn-native-website-20230414-140301</td>
+            <td>2023-04-14T12:03:02.000Z</td>
+            <td><strong>snap-0e9227ee53ee5339d</strong><br/><ul class='volumes-list'><li>vol-0409973ff918efb0a (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0fc1a7011b338caee</td>
+            <td>cn-stage-php-20220530-104512</td>
+            <td>2022-05-30T08:45:12.000Z</td>
+            <td><strong>snap-03b93112052f3ad10</strong><br/><ul class='volumes-list'><li>vol-085aed6188976999d (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-029650b163a2fad25</td>
+            <td>cn-commons-polls-key-rotations</td>
+            <td>2021-11-17T16:47:41.000Z</td>
+            <td><strong>snap-072dbef9ba5266cfa</strong><br/><ul class='volumes-list'><li>vol-084af29656c441644 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-067d540bfef4a0ba3</td>
+            <td>sp-apps-gb-</td>
+            <td>2021-10-08T13:43:53.000Z</td>
+            <td><strong>snap-01ff815bab2bc392e</strong><br/><ul class='volumes-list'><li>vol-083dbca1dfee70e69 (in-use)</li></ul><br/><strong>snap-031086fb320e9a543</strong><br/><ul class='volumes-list'><li>vol-081f96726937c8d44 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0f69c9888036c7312</td>
+            <td>cn-vogue-sfilate-nginx-php-fpm-20210118-144828</td>
+            <td>2021-01-18T13:48:29.000Z</td>
+            <td><strong>snap-0a054c9dac54eed11</strong><br/><ul class='volumes-list'><li>vol-08284a3b72d6c98e6 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0f3f02faaefc17439</td>
+            <td>cn-cnlive2015-website-20201021-170514</td>
+            <td>2020-10-21T15:05:14.000Z</td>
+            <td><strong>snap-00ad0624edc1b0735</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0dd032f12b23cfa83</td>
+            <td>cn-marketing-dbm-20191211-000000</td>
+            <td>2019-12-11T14:24:23.000Z</td>
+            <td><strong>snap-06c2d4fcee0b63a6d</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0269552ee15cec5f6</td>
+            <td>openvpn-ami-image-latest</td>
+            <td>2019-09-30T15:47:12.000Z</td>
+            <td><strong>snap-0469111a129fa59f2</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-057d1e7fb6434ca52</td>
+            <td>cn-stage-varnish-20190326-165800</td>
+            <td>2019-03-26T15:58:28.000Z</td>
+            <td><strong>snap-0b6f3d9d9d3b005c7</strong><br/><ul class='volumes-list'><li>vol-0db9ae4be2a223b17 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-09a7bedea6ebc7f2f</td>
+            <td>lci-memcached</td>
+            <td>2019-02-18T11:41:25.000Z</td>
+            <td><strong>snap-04e07d34199b6f60e</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-0ffb6194866875c06</td>
+            <td>cn-dbmarketing-exp-20180926-174700</td>
+            <td>2018-09-26T15:47:20.000Z</td>
+            <td><strong>snap-045d2ef0bb2492bae</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>❌</td>
+            <td class="yes">✔️ Yes</td>
+        </tr>
+        
+        <tr>
+            <td>ami-1b8e2c62</td>
+            <td>sp-commons-sambafs-20171106-101700</td>
+            <td>2017-11-06T09:17:11.000Z</td>
+            <td><strong>snap-064cabd40f662ac43</strong><br/><ul class='volumes-list'><li>vol-0a34275b46917ff7f (in-use)</li></ul><br/><strong>snap-0ad039efe42aed5f8</strong><br/><ul class='volumes-list'><li>vol-073cbd897ebb1171c (in-use)</li></ul><br/><strong>snap-04d5114b7d909f981</strong><br/><ul class='volumes-list'><li>vol-00527b943563369bf (in-use)</li></ul><br/><strong>snap-01a70c2007152e9ef</strong><br/><ul class='volumes-list'><li>vol-03be7906f33214280 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-c0c1e8a6</td>
+            <td>jmeter-slave-base-1488530704</td>
+            <td>2017-03-03T08:53:36.000Z</td>
+            <td><strong>snap-03c05e7b7ad188ce4</strong><br/><ul class='volumes-list'><li>vol-07d09f3b7edf1dc68 (in-use)</li><li>vol-0d1d3684c58bab598 (in-use)</li><li>vol-0945b227c6a95a964 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td>✅</td>
+            <td>❌</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-7f6d3519</td>
+            <td>style.blog</td>
+            <td>2017-01-31T10:06:08.000Z</td>
+            <td><strong>snap-77f7b711</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-7b436b08</td>
+            <td>sp-vanityfair-varnishprod-20170109-165025</td>
+            <td>2017-01-09T15:50:26.000Z</td>
+            <td><strong>snap-0f7f24f148726317b</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-5cf6df2f</td>
+            <td>cn-legacy-abbonatiqui-20170108-033006</td>
+            <td>2017-01-08T03:30:11.000Z</td>
+            <td><strong>snap-0f5be3d258b67c69a</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-ebf6df98</td>
+            <td>sp-commons-debianwheezy-20170108-030007</td>
+            <td>2017-01-08T03:00:27.000Z</td>
+            <td><strong>snap-0908ee25573fb92ca</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        <tr>
+            <td>ami-25bbe556</td>
+            <td>cn-cnlive2015-videouploaderapi-20161129-164359</td>
+            <td>2016-11-29T15:44:00.000Z</td>
+            <td><strong>snap-e6eab180</strong><br/>Volumes: -<br/> </td>
+            <td>❌</td>
+            <td>✅</td>
+            <td class="no">❌ No</td>
+        </tr>
+        
+        </tbody>
+    </table>
 
-        <script>
-        function sortTable(n) {
-            var table = document.getElementById("amiTable");
-            var rows = Array.from(table.rows).slice(1);
-            var asc = table.getAttribute("data-sort-dir") !== "asc";
-            rows.sort((a, b) => {
-                let x = a.cells[n].innerText;
-                let y = b.cells[n].innerText;
-                return asc ? x.localeCompare(y, undefined, {numeric: true}) : y.localeCompare(x, undefined, {numeric: true});
-            });
-            rows.forEach(row => table.appendChild(row));
-            table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+    <script>
+    function sortTable(n) {
+        var table = document.getElementById("amiTable");
+        var rows = Array.from(table.rows).slice(1);
+        var asc = table.getAttribute("data-sort-dir") !== "asc";
+        rows.sort((a, b) => {
+            let x = a.cells[n].innerText;
+            let y = b.cells[n].innerText;
+            return asc ? x.localeCompare(y, undefined, {numeric: true}) : y.localeCompare(x, undefined, {numeric: true});
+        });
+        rows.forEach(row => table.appendChild(row));
+        table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+    }
+
+    function filterTable() {
+        const filter = document.getElementById("searchInput").value.toUpperCase();
+        const rows = document.getElementById("amiTable").rows;
+        for (let i = 1; i < rows.length; i++) {
+            rows[i].style.display = Array.from(rows[i].cells).some(
+                function(td) { return td.innerText.toUpperCase().includes(filter); }
+            ) ? "" : "none";
         }
+    }
 
-        function filterTable() {
-            const filter = document.getElementById("searchInput").value.toUpperCase();
-            const rows = document.getElementById("amiTable").rows;
-            for (let i = 1; i < rows.length; i++) {
-                rows[i].style.display = Array.from(rows[i].cells).some(
-                    function(td) { return td.innerText.toUpperCase().includes(filter); }
-                ) ? "" : "none";
-            }
-        }
+    function exportTableToCSV(filename) {
+        const rows = document.querySelectorAll("table tr");
+        const csv = Array.from(rows).map(function(row) {
+            return Array.from(row.cells).map(function(c) {
+                return '"' + c.innerText + '"';
+            }).join(",");
+        }).join("\n");
 
-        function exportTableToCSV(filename) {
-            const rows = document.querySelectorAll("table tr");
-            const csv = Array.from(rows).map(function(row) {
-                return Array.from(row.cells).map(function(c) {
-                    return '"' + c.innerText + '"';
-                }).join(",");
-            }).join("\n");
-
-            const blob = new Blob([csv], { type: "text/csv" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = filename;
-            a.click();
-        }
-        </script>
+        const blob = new Blob([csv], { type: "text/csv" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+    }
+    </script>
     </body>
     </html>
     
