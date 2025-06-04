@@ -57,15 +57,18 @@ def get_ami_dependencies(region='eu-west-1'):
 
     for ami in amis:
         ami_id = ami['ImageId']
-        snapshot_ids = []
-        volume_count = 0
+        snapshot_details = []
 
         for mapping in ami.get('BlockDeviceMappings', []):
             ebs = mapping.get('Ebs')
             if ebs and ebs.get('SnapshotId'):
                 snapshot_id = ebs['SnapshotId']
-                snapshot_ids.append(snapshot_id)
-                volume_count += len(volumes_by_snapshot.get(snapshot_id, []))
+                volumes = volumes_by_snapshot.get(snapshot_id, [])
+                volume_ids = [v['VolumeId'] for v in volumes]
+                snapshot_details.append({
+                    'snapshot_id': snapshot_id,
+                    'volume_ids': volume_ids
+                })
 
         used_by_ec2 = ami_id in ec2_images_in_use
         used_by_asg = ami_id in asg_images_in_use
@@ -75,8 +78,7 @@ def get_ami_dependencies(region='eu-west-1'):
             'ami_id': ami_id,
             'name': ami.get('Name', ''),
             'creation_date': ami.get('CreationDate', ''),
-            'snapshots': snapshot_ids,
-            'volume_count': volume_count,
+            'snapshots': snapshot_details,
             'used_by_ec2': used_by_ec2,
             'used_by_asg': used_by_asg,
             'safe_to_delete': safe_to_delete
@@ -87,7 +89,12 @@ def get_ami_dependencies(region='eu-west-1'):
 def generate_html(results):
     rows = ""
     for r in results:
-        snapshot_ids = ", ".join(r['snapshots']) if r['snapshots'] else "-"
+        snapshot_info = ""
+        for snap in r['snapshots']:
+            volume_ids = snap['volume_ids']
+            volume_list = ", ".join(volume_ids) if volume_ids else "-"
+            snapshot_info += f"<strong>{snap['snapshot_id']}</strong><br/>Volumes: {volume_list}<br/><br/>"
+
         used_ec2 = "✅" if r['used_by_ec2'] else "❌"
         used_asg = "✅" if r['used_by_asg'] else "❌"
         safe_class = "yes" if r['safe_to_delete'] else "no"
@@ -98,7 +105,7 @@ def generate_html(results):
             <td>{r['ami_id']}</td>
             <td>{r['name']}</td>
             <td>{r['creation_date']}</td>
-            <td>{snapshot_ids}</td>
+            <td>{snapshot_info}</td>
             <td>{used_ec2}</td>
             <td>{used_asg}</td>
             <td class="{safe_class}">{safe_label}</td>
@@ -140,7 +147,7 @@ def generate_html(results):
                     <th onclick="sortTable(0)">AMI ID</th>
                     <th onclick="sortTable(1)">Name</th>
                     <th onclick="sortTable(2)">Creation Date</th>
-                    <th onclick="sortTable(3)">Snapshot IDs</th>
+                    <th onclick="sortTable(3)">Snapshots & Volumes</th>
                     <th onclick="sortTable(4)">Used by EC2</th>
                     <th onclick="sortTable(5)">Used by ASG</th>
                     <th onclick="sortTable(6)">Safe to Delete</th>
@@ -197,6 +204,7 @@ def generate_html(results):
     Path("output").mkdir(parents=True, exist_ok=True)
     Path("output/results.html").write_text(html)
     print("✅ Saved: output/results.html")
+
 
 
 # --------- MAIN ------------------
