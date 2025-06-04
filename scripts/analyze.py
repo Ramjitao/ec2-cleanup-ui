@@ -49,9 +49,11 @@ def get_ami_dependencies(region='eu-west-1'):
     paginator = ec2.get_paginator('describe_volumes')
     for page in paginator.paginate():
         for volume in page['Volumes']:
-            if volume['State'] == 'available' and 'SnapshotId' in volume:
-                volumes_by_snapshot[volume['SnapshotId']].append(volume)
-
+            if 'SnapshotId' in volume:
+                volumes_by_snapshot[volume['SnapshotId']].append({
+                    'VolumeId': volume['VolumeId'],
+                    'State': volume['State']
+                })
     print("✅ Analysis complete.")
     results = []
 
@@ -64,10 +66,9 @@ def get_ami_dependencies(region='eu-west-1'):
             if ebs and ebs.get('SnapshotId'):
                 snapshot_id = ebs['SnapshotId']
                 volumes = volumes_by_snapshot.get(snapshot_id, [])
-                volume_ids = [v['VolumeId'] for v in volumes]
                 snapshot_details.append({
                     'snapshot_id': snapshot_id,
-                    'volume_ids': volume_ids
+                    'volumes': volumes  # Each has VolumeId + State
                 })
 
         used_by_ec2 = ami_id in ec2_images_in_use
@@ -84,6 +85,7 @@ def get_ami_dependencies(region='eu-west-1'):
             'safe_to_delete': safe_to_delete
         })
 
+
     return results
 
 def generate_html(results):
@@ -91,9 +93,14 @@ def generate_html(results):
     for r in results:
         snapshot_info = ""
         for snap in r['snapshots']:
-            volume_ids = snap['volume_ids']
-            volume_list = ", ".join(volume_ids) if volume_ids else "-"
-            snapshot_info += f"<strong>{snap['snapshot_id']}</strong><br/>Volumes: {volume_list}<br/><br/>"
+            if snap['volumes']:
+                vol_lines = "<ul>" + "".join(
+                    f"<li>{v['VolumeId']} ({v['State']})</li>" for v in snap['volumes']
+                ) + "</ul>"
+            else:
+                vol_lines = "Volumes: -"
+            snapshot_info += f"<strong>{snap['snapshot_id']}</strong><br/>{vol_lines}<br/>"
+
 
         used_ec2 = "✅" if r['used_by_ec2'] else "❌"
         used_asg = "✅" if r['used_by_asg'] else "❌"
@@ -113,93 +120,98 @@ def generate_html(results):
         """
 
     html = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>🌄 AMI Dependency Dashboard</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; padding: 20px; color: #333; }}
-            table {{ border-collapse: collapse; width: 100%; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
-            th, td {{ border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }}
-            th {{ background-color: #f2f2f2; cursor: pointer; }}
-            tr:hover {{ background-color: #f5f5f5; }}
-            .yes {{ color: green; font-weight: bold; }}
-            .no {{ color: red; font-weight: bold; }}
-            .warn {{ color: orange; font-weight: bold; }}
-            .center {{ text-align: center; }}
-            .actions {{ margin: 10px 0; }}
-            input[type="text"] {{ width: 300px; padding: 6px; margin-right: 10px; }}
-        </style>
+   <!DOCTYPE html>
+   <html lang="en">
+   <head>
+    <meta charset="UTF-8">
+    <title>🌄 AMI Dependency Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+        table { border-collapse: collapse; width: 100%; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }
+        th { background-color: #f2f2f2; cursor: pointer; }
+        tr:hover { background-color: #f5f5f5; }
+        .yes { color: green; font-weight: bold; }
+        .no { color: red; font-weight: bold; }
+        .warn { color: orange; font-weight: bold; }
+        .center { text-align: center; }
+        .actions { margin: 10px 0; }
+        input[type="text"] { width: 300px; padding: 6px; margin-right: 10px; }
+
+        /* Volume styling */
+        .volumes-list { margin: 0; padding-left: 20px; list-style-type: disc; }
+        .vol-in-use { color: green; font-weight: bold; }
+        .vol-available { color: orange; font-weight: bold; }
+        .vol-error, .vol-deleting, .vol-other { color: red; font-weight: bold; }
+    </style>
     </head>
     <body>
-        <h2>🌄 AMI Dependency Dashboard</h2>
-        <p><strong>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</strong></p>
+    <h2>🌄 AMI Dependency Dashboard</h2>
+    <p><strong>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</strong></p>
 
-        <div class="actions">
-            <input type="text" id="searchInput" placeholder="🔎 Filter AMIs..." onkeyup="filterTable()" />
-            <button onclick="exportTableToCSV('ami_dependencies.csv')">📥 Export CSV</button>
-        </div>
+    <div class="actions">
+        <input type="text" id="searchInput" placeholder="🔎 Filter AMIs..." onkeyup="filterTable()" />
+        <button onclick="exportTableToCSV('ami_dependencies.csv')">📥 Export CSV</button>
+    </div>
 
-        <table id="amiTable" data-sort-dir="asc">
-            <thead>
-                <tr>
-                    <th onclick="sortTable(0)">AMI ID</th>
-                    <th onclick="sortTable(1)">Name</th>
-                    <th onclick="sortTable(2)">Creation Date</th>
-                    <th onclick="sortTable(3)">Snapshots & Volumes</th>
-                    <th onclick="sortTable(4)">Used by EC2</th>
-                    <th onclick="sortTable(5)">Used by ASG</th>
-                    <th onclick="sortTable(6)">Safe to Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-                {rows}
-            </tbody>
-        </table>
+    <table id="amiTable" data-sort-dir="asc">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">AMI ID</th>
+                <th onclick="sortTable(1)">Name</th>
+                <th onclick="sortTable(2)">Creation Date</th>
+                <th onclick="sortTable(3)">Snapshots & Volumes</th>
+                <th onclick="sortTable(4)">Used by EC2</th>
+                <th onclick="sortTable(5)">Used by ASG</th>
+                <th onclick="sortTable(6)">Safe to Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            {rows}
+        </tbody>
+    </table>
 
-        <script>
-        function sortTable(n) {{
-            var table = document.getElementById("amiTable");
-            var rows = Array.from(table.rows).slice(1);
-            var asc = table.getAttribute("data-sort-dir") !== "asc";
-            rows.sort((a, b) => {{
-                let x = a.cells[n].innerText;
-                let y = b.cells[n].innerText;
-                return asc ? x.localeCompare(y, undefined, {{numeric: true}}) : y.localeCompare(x, undefined, {{numeric: true}});
-            }});
-            rows.forEach(row => table.appendChild(row));
-            table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
-        }}
+    <script>
+    function sortTable(n) {
+        var table = document.getElementById("amiTable");
+        var rows = Array.from(table.rows).slice(1);
+        var asc = table.getAttribute("data-sort-dir") !== "asc";
+        rows.sort((a, b) => {
+            let x = a.cells[n].innerText;
+            let y = b.cells[n].innerText;
+            return asc ? x.localeCompare(y, undefined, {numeric: true}) : y.localeCompare(x, undefined, {numeric: true});
+        });
+        rows.forEach(row => table.appendChild(row));
+        table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+    }
 
-        function filterTable() {{
-            const filter = document.getElementById("searchInput").value.toUpperCase();
-            const rows = document.getElementById("amiTable").rows;
-            for (let i = 1; i < rows.length; i++) {{
-                rows[i].style.display = Array.from(rows[i].cells).some(
-                    function(td) {{ return td.innerText.toUpperCase().includes(filter); }}
-                ) ? "" : "none";
-            }}
-        }}
+    function filterTable() {
+        const filter = document.getElementById("searchInput").value.toUpperCase();
+        const rows = document.getElementById("amiTable").rows;
+        for (let i = 1; i < rows.length; i++) {
+            rows[i].style.display = Array.from(rows[i].cells).some(
+                function(td) { return td.innerText.toUpperCase().includes(filter); }
+            ) ? "" : "none";
+        }
+    }
 
-        function exportTableToCSV(filename) {{
-            const rows = document.querySelectorAll("table tr");
-            const csv = Array.from(rows).map(function(row) {{
-                return Array.from(row.cells).map(function(c) {{
-                    return '"' + c.innerText + '"';
-                }}).join(",");
-            }}).join("\\n");
+    function exportTableToCSV(filename) {
+        const rows = document.querySelectorAll("table tr");
+        const csv = Array.from(rows).map(function(row) {
+            return Array.from(row.cells).map(function(c) {
+                return '"' + c.innerText + '"';
+            }).join(",");
+        }).join("\n");
 
-            const blob = new Blob([csv], {{ type: "text/csv" }});
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = filename;
-            a.click();
-        }}
-        </script>
+        const blob = new Blob([csv], { type: "text/csv" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+    }
+    </script>
     </body>
-    </html>
-    """
+    /html>"""
 
     Path("output").mkdir(parents=True, exist_ok=True)
     Path("output/results.html").write_text(html)
