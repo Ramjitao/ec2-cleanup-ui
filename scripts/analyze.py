@@ -96,7 +96,14 @@ def analyze_amis(
 
         used_by_ec2 = ami_id in ec2_images_in_use
         used_by_asg = ami_id in asg_images_in_use
-        has_attached_volumes = any(snap['volumes'] for snap in snapshot_details)
+
+        # ✅ New fix: check if any volume is in-use
+        has_attached_volumes = any(
+            v['State'] == 'in-use'
+            for snap in snapshot_details
+            for v in snap['volumes']
+        )
+
         safe_to_delete = not used_by_ec2 and not used_by_asg and not has_attached_volumes
 
         results.append({
@@ -110,9 +117,9 @@ def analyze_amis(
             'has_attached_volumes': has_attached_volumes
         })
 
-    # Sort descending by creation date
     results.sort(key=lambda x: x['creation_date'], reverse=True)
     return results
+
 
 def generate_html(results: List[Dict[str, Any]], output_path: Path) -> None:
     log.info(f"Generating HTML report at {output_path} ...")
