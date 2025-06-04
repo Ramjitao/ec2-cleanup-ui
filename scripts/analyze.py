@@ -1,65 +1,82 @@
+import argparse
 import boto3
-from pathlib import Path
-from datetime import datetime
+import html
+import logging
 from collections import defaultdict
+from datetime import datetime
+from pathlib import Path
+from typing import List, Dict, Any, Optional
 
-def get_ami_dependencies(region='eu-west-1'):
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+log = logging.getLogger(__name__)
+
+def create_clients(region: str):
     ec2 = boto3.client('ec2', region_name=region)
     asg = boto3.client('autoscaling', region_name=region)
+    return ec2, asg
 
-    print("🔍 Fetching AMIs...")
-    amis = ec2.describe_images(Owners=['self'])['Images']
+def fetch_amis(ec2) -> List[Dict[str, Any]]:
+    log.info("Fetching AMIs...")
+    return ec2.describe_images(Owners=['self'])['Images']
 
-    print("🔍 Fetching EC2 instance usage...")
-    ec2_images_in_use = set()
+def fetch_ec2_images_in_use(ec2) -> set:
+    log.info("Fetching EC2 instance usage...")
+    images_in_use = set()
     paginator = ec2.get_paginator('describe_instances')
     for page in paginator.paginate():
         for res in page['Reservations']:
             for inst in res['Instances']:
-                ec2_images_in_use.add(inst['ImageId'])
+                images_in_use.add(inst['ImageId'])
+    return images_in_use
 
-    print("🔍 Fetching ASG usage...")
-    asg_images_in_use = set()
+def fetch_asg_images_in_use(asg, ec2) -> set:
+    log.info("Fetching AutoScaling Group usage...")
+    images_in_use = set()
     asgs = asg.describe_auto_scaling_groups()['AutoScalingGroups']
     for group in asgs:
         if 'LaunchTemplate' in group:
             lt_id = group['LaunchTemplate']['LaunchTemplateId']
             try:
-                lt_versions = ec2.describe_launch_template_versions(
-                    LaunchTemplateId=lt_id
-                )['LaunchTemplateVersions']
+                lt_versions = ec2.describe_launch_template_versions(LaunchTemplateId=lt_id)['LaunchTemplateVersions']
                 for version in lt_versions:
                     image_id = version['LaunchTemplateData'].get('ImageId')
                     if image_id:
-                        asg_images_in_use.add(image_id)
+                        images_in_use.add(image_id)
             except Exception as e:
-                print(f"⚠️ Error retrieving launch template {lt_id}: {e}")
-                continue
+                log.warning(f"Error retrieving launch template {lt_id}: {e}")
         elif 'LaunchConfigurationName' in group:
             lc_name = group['LaunchConfigurationName']
             try:
-                lcs = asg.describe_launch_configurations(
-                    LaunchConfigurationNames=[lc_name]
-                )['LaunchConfigurations']
+                lcs = asg.describe_launch_configurations(LaunchConfigurationNames=[lc_name])['LaunchConfigurations']
                 for lc in lcs:
                     if lc.get('ImageId'):
-                        asg_images_in_use.add(lc['ImageId'])
+                        images_in_use.add(lc['ImageId'])
             except Exception as e:
-                print(f"⚠️ Error retrieving launch configuration {lc_name}: {e}")
-                continue
+                log.warning(f"Error retrieving launch configuration {lc_name}: {e}")
+    return images_in_use
 
-    print("🔍 Fetching EBS volumes...")
+def fetch_volumes_by_snapshot(ec2) -> Dict[str, List[Dict[str, str]]]:
+    log.info("Fetching EBS volumes...")
     volumes_by_snapshot = defaultdict(list)
     paginator = ec2.get_paginator('describe_volumes')
     for page in paginator.paginate():
         for volume in page['Volumes']:
-            if 'SnapshotId' in volume:
-                volumes_by_snapshot[volume['SnapshotId']].append({
+            snapshot_id = volume.get('SnapshotId')
+            if snapshot_id:
+                volumes_by_snapshot[snapshot_id].append({
                     'VolumeId': volume['VolumeId'],
                     'State': volume['State']
                 })
+    return volumes_by_snapshot
 
-    print("✅ Analysis complete.")
+def analyze_amis(
+    amis: List[Dict[str, Any]],
+    ec2_images_in_use: set,
+    asg_images_in_use: set,
+    volumes_by_snapshot: Dict[str, List[Dict[str, str]]]
+) -> List[Dict[str, Any]]:
+    log.info("Analyzing AMI dependencies...")
     results = []
 
     for ami in amis:
@@ -68,13 +85,14 @@ def get_ami_dependencies(region='eu-west-1'):
 
         for mapping in ami.get('BlockDeviceMappings', []):
             ebs = mapping.get('Ebs')
-            if ebs and ebs.get('SnapshotId'):
-                snapshot_id = ebs['SnapshotId']
-                volumes = volumes_by_snapshot.get(snapshot_id, [])
-                snapshot_details.append({
-                    'snapshot_id': snapshot_id,
-                    'volumes': volumes
-                })
+            if ebs:
+                snapshot_id = ebs.get('SnapshotId')
+                if snapshot_id:
+                    volumes = volumes_by_snapshot.get(snapshot_id, [])
+                    snapshot_details.append({
+                        'snapshot_id': snapshot_id,
+                        'volumes': volumes
+                    })
 
         used_by_ec2 = ami_id in ec2_images_in_use
         used_by_asg = ami_id in asg_images_in_use
@@ -92,21 +110,23 @@ def get_ami_dependencies(region='eu-west-1'):
             'has_attached_volumes': has_attached_volumes
         })
 
+    # Sort descending by creation date
     results.sort(key=lambda x: x['creation_date'], reverse=True)
     return results
 
-def generate_html(results):
+def generate_html(results: List[Dict[str, Any]], output_path: Path) -> None:
+    log.info(f"Generating HTML report at {output_path} ...")
     rows = ""
     for r in results:
         snapshot_info = ""
         for snap in r['snapshots']:
             if snap['volumes']:
                 vol_lines = "<ul class='volumes-list'>" + "".join(
-                    f"<li>{v['VolumeId']} ({v['State']})</li>" for v in snap['volumes']
+                    f"<li>{html.escape(v['VolumeId'])} ({html.escape(v['State'])})</li>" for v in snap['volumes']
                 ) + "</ul>"
             else:
                 vol_lines = "Volumes: -"
-            snapshot_info += f"<strong>{snap['snapshot_id']}</strong><br/>{vol_lines}<br/>"
+            snapshot_info += f"<strong>{html.escape(snap['snapshot_id'])}</strong><br/>{vol_lines}<br/>"
 
         used_ec2 = "✅" if r['used_by_ec2'] else "❌"
         used_asg = "✅" if r['used_by_asg'] else "❌"
@@ -116,9 +136,9 @@ def generate_html(results):
 
         rows += f"""
         <tr>
-            <td>{r['ami_id']}</td>
-            <td>{r['name']}</td>
-            <td>{r['creation_date']}</td>
+            <td>{html.escape(r['ami_id'])}</td>
+            <td>{html.escape(r['name'])}</td>
+            <td>{html.escape(r['creation_date'])}</td>
             <td>{snapshot_info} {vol_warn}</td>
             <td>{used_ec2}</td>
             <td>{used_asg}</td>
@@ -129,7 +149,7 @@ def generate_html(results):
     total_amis = len(results)
     total_unused = sum(1 for r in results if r['safe_to_delete'])
 
-    html = f"""
+    html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -147,6 +167,27 @@ def generate_html(results):
         .volumes-list {{ margin: 0; padding-left: 20px; list-style-type: disc; }}
         .actions {{ margin: 10px 0; }}
         input[type="text"] {{ width: 300px; padding: 6px; margin-right: 10px; }}
+        @media (max-width: 800px) {{
+            table, thead, tbody, th, td, tr {{ display: block; }}
+            th {{ position: sticky; top: 0; background: #f2f2f2; }}
+            tr {{ margin-bottom: 1em; }}
+            td {{ border: none; position: relative; padding-left: 50%; }}
+            td::before {{
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                width: 45%;
+                white-space: nowrap;
+                font-weight: bold;
+            }}
+            td:nth-of-type(1)::before {{ content: "AMI ID"; }}
+            td:nth-of-type(2)::before {{ content: "Name"; }}
+            td:nth-of-type(3)::before {{ content: "Creation Date"; }}
+            td:nth-of-type(4)::before {{ content: "Snapshots & Volumes"; }}
+            td:nth-of-type(5)::before {{ content: "Used by EC2"; }}
+            td:nth-of-type(6)::before {{ content: "Used by ASG"; }}
+            td:nth-of-type(7)::before {{ content: "Safe to Delete"; }}
+        }}
     </style>
     </head>
     <body>
@@ -195,18 +236,16 @@ def generate_html(results):
         const rows = document.getElementById("amiTable").rows;
         for (let i = 1; i < rows.length; i++) {{
             rows[i].style.display = Array.from(rows[i].cells).some(
-                function(td) {{ return td.innerText.toUpperCase().includes(filter); }}
+                td => td.innerText.toUpperCase().includes(filter)
             ) ? "" : "none";
         }}
     }}
 
     function exportTableToCSV(filename) {{
         const rows = document.querySelectorAll("table tr");
-        const csv = Array.from(rows).map(function(row) {{
-            return Array.from(row.cells).map(function(c) {{
-                return '"' + c.innerText + '"';
-            }}).join(",");
-        }}).join("\\n");
+        const csv = Array.from(rows).map(row => 
+            Array.from(row.cells).map(c => '"' + c.innerText + '"').join(",")
+        ).join("\\n");
 
         const blob = new Blob([csv], {{ type: "text/csv" }});
         const a = document.createElement("a");
@@ -219,13 +258,25 @@ def generate_html(results):
     </html>
     """
 
-    Path("output").mkdir(parents=True, exist_ok=True)
-    Path("output/results.html").write_text(html)
-    print("✅ Saved: output/results.html")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html_content, encoding='utf-8')
+    log.info(f"✅ Saved: {output_path}")
 
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generate AMI dependency dashboard")
+    parser.add_argument("--region", default="eu-west-1", help="AWS region")
+    parser.add_argument("--output", default="output/results.html", help="Output HTML file path")
+    args = parser.parse_args()
 
-# --------- MAIN ------------------
+    ec2, asg = create_clients(args.region)
+
+    amis = fetch_amis(ec2)
+    ec2_images_in_use = fetch_ec2_images_in_use(ec2)
+    asg_images_in_use = fetch_asg_images_in_use(asg, ec2)
+    volumes_by_snapshot = fetch_volumes_by_snapshot(ec2)
+
+    results = analyze_amis(amis, ec2_images_in_use, asg_images_in_use, volumes_by_snapshot)
+    generate_html(results, Path(args.output))
+
 if __name__ == "__main__":
-    region = 'eu-west-1'
-    results = get_ami_dependencies(region)
-    generate_html(results)
+    main()
