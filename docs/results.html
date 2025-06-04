@@ -1,10 +1,11 @@
-🔍 Fetching AMIs...
-🔍 Fetching EC2 instance usage...
-🔍 Fetching ASG usage...
-🔍 Fetching EBS volumes...
-✅ Analysis complete.
-✅ Saved: output/results.html
- Arial, sans-serif; padding: 20px; color: #333; }
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <title>🌄 AMI Dependency Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
         table { border-collapse: collapse; width: 100%; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         th, td { border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }
         th { background-color: #f2f2f2; cursor: pointer; }
@@ -15,11 +16,32 @@
         .volumes-list { margin: 0; padding-left: 20px; list-style-type: disc; }
         .actions { margin: 10px 0; }
         input[type="text"] { width: 300px; padding: 6px; margin-right: 10px; }
+        @media (max-width: 800px) {
+            table, thead, tbody, th, td, tr { display: block; }
+            th { position: sticky; top: 0; background: #f2f2f2; }
+            tr { margin-bottom: 1em; }
+            td { border: none; position: relative; padding-left: 50%; }
+            td::before {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                width: 45%;
+                white-space: nowrap;
+                font-weight: bold;
+            }
+            td:nth-of-type(1)::before { content: "AMI ID"; }
+            td:nth-of-type(2)::before { content: "Name"; }
+            td:nth-of-type(3)::before { content: "Creation Date"; }
+            td:nth-of-type(4)::before { content: "Snapshots & Volumes"; }
+            td:nth-of-type(5)::before { content: "Used by EC2"; }
+            td:nth-of-type(6)::before { content: "Used by ASG"; }
+            td:nth-of-type(7)::before { content: "Safe to Delete"; }
+        }
     </style>
     </head>
     <body>
     <h2>🌄 AMI Dependency Dashboard</h2>
-    <p><strong>2025-06-04 07:22:07 UTC</strong></p>
+    <p><strong>2025-06-04 07:49:53 UTC</strong></p>
     <p>Total AMIs: <strong>59</strong> | Safe to delete: <strong>29</strong></p>
 
     <div class="actions">
@@ -535,7 +557,7 @@
             <td>ami-057d1e7fb6434ca52</td>
             <td>cn-stage-varnish-20190326-165800</td>
             <td>2019-03-26T15:58:28.000Z</td>
-            <td><strong>snap-0b6f3d9d9d3b005c7</strong><br/><ul class='volumes-list'><li>vol-0db9ae4be2a223b17 (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
+            <td><strong>snap-0b6f3d9d9d3b005c7</strong><br/><ul class='volumes-list'><li>vol-0d6e7faa15ab8433d (in-use)</li></ul><br/> ⚠️ Volumes attached</td>
             <td>✅</td>
             <td>✅</td>
             <td class="no">❌ No</td>
@@ -653,18 +675,16 @@
         const rows = document.getElementById("amiTable").rows;
         for (let i = 1; i < rows.length; i++) {
             rows[i].style.display = Array.from(rows[i].cells).some(
-                function(td) { return td.innerText.toUpperCase().includes(filter); }
+                td => td.innerText.toUpperCase().includes(filter)
             ) ? "" : "none";
         }
     }
 
     function exportTableToCSV(filename) {
         const rows = document.querySelectorAll("table tr");
-        const csv = Array.from(rows).map(function(row) {
-            return Array.from(row.cells).map(function(c) {
-                return '"' + c.innerText + '"';
-            }).join(",");
-        }).join("\n");
+        const csv = Array.from(rows).map(row => 
+            Array.from(row.cells).map(c => '"' + c.innerText + '"').join(",")
+        ).join("\n");
 
         const blob = new Blob([csv], { type: "text/csv" });
         const a = document.createElement("a");
